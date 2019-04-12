@@ -1,0 +1,5 @@
+implemented dependent lambda (just pi types), based on PTS
+originally type declarations and term bindings were implemented outside the semantics of the language, at the level of the repl
+i decided to add them specifically into the language specification
+this was successful, but I realised I needed to add var expansion to type equivalence checking (because right now, Vector one != Vector (succ zero), despite me defining one = succ zero)
+i added var expansion to the type equality checking and it now works

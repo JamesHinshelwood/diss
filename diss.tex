@@ -1,0 +1,246 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+\input{prelude}
+
+\input{lang}
+
+\begin{document}
+
+\pagestyle{empty}
+
+\rightline{\LARGE \textbf{James Hinshelwood}}
+
+\vspace*{60mm}
+\begin{center}
+\Huge
+\textbf{Implementing a Dependently Typed Programming Language} \\[5mm]
+Computer Science Tripos -- Part II \\[5mm]
+Selwyn College \\[5mm]
+\today
+\end{center}
+
+
+\pagestyle{plain}
+\chapter*{Declaration}
+
+I, James Hinshelwood of Selwyn College, being a candidate for Part II of the Computer Science Tripos, hereby declare that this dissertation and the work described in it are my own work, unaided except as may be specified below, and that the dissertation does not contain material that has already been used to any substantial extent for a comparable purpose.
+
+\bigskip
+\leftline{Signed James Hinshelwood}
+
+\medskip
+\leftline{Date [date]}
+
+\chapter*{Proforma}
+
+{\large
+\begin{tabular}{ll}
+Candidate number: & \todo{candidate number} \\
+Project Title: & \makecell[l]{Implementing a Dependently Typed \\ Programming Language} \\
+Examination: & Computer Science Tripos -- Part II \\
+Year: & 2019 \\
+Word Count: & \todo{word count} \\
+Line Count: & \todo{line count} \\
+Project Originator: & \todo{originator} \\
+Supervisor: & \todo{neel} \\ 
+\end{tabular}
+}
+
+\section*{Original Aims of the Project}
+
+\todo{aims}
+
+\section*{Work Completed}
+
+\todo{work}
+
+\section*{Special Difficulties}
+
+\todo{difficulties}
+
+\tableofcontents
+
+\chapter{Introduction}
+\pagestyle{headings}
+
+Type systems help us write less error-prone code.
+By detecting certain errors at compile time, we are able to reject many invalid programs, before they can be run.
+As the expressivity of type systems has improved, so has their ability to detect a greater range of type errors.
+For example, polymorphic type systems are able to express functions which are generic over multiple types.
+Without polymorphism, programmers must either resort to excessive code repetition or unsafe features, such as void pointers.
+
+Dependent types extend the power of type systems even further, by allowing types which are refined by values.
+A common example of a dependent type is length-indexed lists, usually referred to as Vectors, where the number of elements in the list is included as part of the type.
+We can then refine the type of functions operating on vectors, to better express their behaviour. For example the zip function which combines two lists can be typed as \lstinline{zip : Vec A n -> Vec B n -> Vec (A, B) n}.
+Here, the types specify that both input vectors must be of the same size, and the resulting vector will also be that size.
+If the programmer tries to pass vectors which are not the same size, the program will not typecheck.
+In a non-dependently typed language, where the length is not statically specified, the \lstinline{zip} function would have to deal with this case less gracefully, by for example, throwing an error.
+
+Dependent types do not come for free though, as they add significant complexity to both the type checker and the language itself. By allowing values to appear within types
+
+My language aims to be close to the \(\lambda\)-calculus, in which every term is an expression. It does not include some of the higher level features that exist in some other dependently typed langauges, such as implicit arguments and termination checking. The language features let bindings, (recursive) algebraic data types and propositional equality.
+
+\todo{survey of previous work}
+
+\chapter{Preparation}
+
+\section{Requirements Analysis}
+
+
+\todo{prep}
+
+\section{Starting Point}
+\subsection{Theory}
+
+\subsection{Implementation}
+\begin{itemize}
+    \item Rust Standard Library
+    \item Moniker crate\footnote{\url{https://github.com/brendanzab/moniker}} - Provides abstractions for variable binding and scoping.
+    \item LALRPOP crate\footnote{\url{https://github.com/lalrpop/lalrpop}} - Parser generator.
+    \item \todo{Dependencies}
+\end{itemize}
+
+\chapter{Implementation}
+
+This chapter will first describe the theory of the language and the decisions made in its design, and then describe the concrete implementation.
+
+\section{Theory}
+
+\subsection{Syntax}
+
+\begin{figure}
+    \syntax{}
+    \caption{Language syntax}
+    \label{syntax}
+\end{figure}
+
+\todo{include examples of terms?}
+
+The full syntax of the language is described in figure~\ref{syntax}.
+
+Dependent types allow the syntax of values, types and kinds to be unified.
+The metavariables \(e\) and \(\tau\) are used to hint as to the expected usage of a term.
+
+A bidirectional typing algorithm is used, so terms may be annotated by their types, to move the algorithm from inference mode to checking mode.
+
+There is only a single kind, \lstinline{Type}, representing the type of other types.
+This introduces partiality into the language, meaning false can be proven.
+However, there are other proofs of false arising from general recursion and the lack of a termination checker, so I have opted for the simpler theory, with a single type universe.
+I will expand on this further later\todo{non-termination}.
+
+\todo{Remove declaration from language?}
+
+Dependent function types are also known as pi types. These differ from regular function types in that the argument of type \(\tau_1\) and bound by \(x\), might appear in the return type \(\tau_2\). In the special, non-dependent case where \(x\) does not appear in \(\tau_2\), the type can be written as \(\tau_1 \rightarrow \tau_2\). Pi types are introduced and eliminated in the expected manner, by lambda terms and application. An annotation for the argument type is not needed in lambda terms, thanks to the bidirectional typing algorithm.
+
+Dependent pair types are also known as sigma types and are similar to pi types.
+Again, the type of the second element \(\tau_2\) may include the value of the first element and non-dependent pairs may be written as just \(\tau_1 \times \tau_2\).
+
+Sum types may include any number of variants, each of which must be labelled.
+
+The equality type represents propositional equality between two terms.
+I will explain this further in its own section. \todo{?}
+
+Recursive types are in development \todo{do}
+
+\todo{Correspondance to logic, thus we can do proofs!}
+
+\subsection{Typing System}
+
+The type system needs to compute equality between terms, but simple alpha equivalence is not enough.
+If a function expects a \lstinline{Vect A 2} and a \lstinline{Vect A (plus 1 1)} is passed in, it is expected that the program would type check.
+Therefore, a definition of equality is required which is able to perform beta reduction.
+This is achieved by first computing terms to a normal form which performs reductions, then checking for alpha equivalence. \todo{add gamma to $\equiv$}
+\[
+    (e_1 \equiv e_2) \overset{\textit{def}}{=} (\nf{\Gamma}{e_1} =_{\alpha} \nf{\Gamma}{e_2})
+\]
+Normal forms are defined as
+\nfs
+\todo{etc}
+
+It is worthy to note that this equality is different from the equality type present in the language.
+This is \todo{definitional} equality, which is computed automatically by the type checker.
+However some equalities are not so simple and must be proven by the programmar, by provding an equality type. \todo{unclear}
+
+A bidirectional typing algorithm \citeneeded is presented in figure~\ref{rules}.
+Two mutually defined typing judgements are used.
+One judgement \(\infer{\Gamma}{e}{\tau}\) takes a context \(\Gamma\) and a term \(e\) as input and synthesises a type \(\tau\).
+The other judgement \(\check{\Gamma}{e}{\tau}\) takes a context \(\Gamma\), a term \(e\) and a type \(\tau\) and checks if \(e\) has type \(\tau\).
+When terms are explicitly annotated, the algorithm switches from inference to checking mode.
+In the other direction, when checking a term's type, if a type can be inferred and the two types are equivalent, the checking succeeds.
+Simple type rules, such as those for \(\type\) or variables can be inferred, but checking is needed when dealing with function types.
+Since the checker does not know the type of a function argument, it may only check a lambda term against a given type (where the argument type is provided).
+The effect of this is that the programmar must annotate the outer level of lambda types, which proves to be much less cumbersome than annotating each lambda term individually and is often encouraged or enforced by other languages for various reasons, such as documentation.
+
+[make clear again what is different about dependent types]
+
+\subsection{Equality Types}
+
+As mentioned previously, sometimes the programmer may have two terms which 
+
+\begin{figure}
+    \rules{}
+    \caption{Bidirectional typing rules}
+    \label{rules}
+\end{figure}
+
+\subsection{Non-Termination}
+
+Due to the lack of a termination checker, partial terms can be typed in my language, allowing proofs of false. For this reason I only have a single type universe, which is contained within itself. This allows another proof of false, but since this is already possible, I have opted for the simpler type system. Another source of partiality is in recursive type definitions. To avoid more proofs of false, positivity checking should be used, however I have chosen not to include this for the same reason.
+
+\section{Implementation of Theory}
+
+\subsection{Repository Overview}
+
+The project is split into two seperate Rust crates. The first \texttt{dpl} contains the actual language implementation. The second \texttt{dpl-cli} provides a frontend to the language and includes \texttt{dpl} as a dependency. Both crates are part of a Cargo workspace, which exists at the root of the repository.
+
+\begin{itemize}
+    \item \texttt{Cargo.toml} - Manifest file describing the workspace containing both crates.
+    \item \texttt{Cargo.lock} - Contains information about the project dependencies, to ensure builds are reproducible.
+    \item \texttt{rustfmt.toml} - Manifest file describing the formatting style used by \texttt{rustfmt}, an automatic formatter.
+    \item \texttt{dpl} - The crate containing the actual language implementation.
+    \begin{itemize}
+        \item \texttt{Cargo.toml} - Manifest file specifying dependencies and other metadata.
+        \item \texttt{build.rs} - Build script run at compile time, which instructs LALRPOP to generate the parser from the syntax description.
+        \item \texttt{src} - Contains all other Rust source files.
+        \begin{itemize}
+            \item \texttt{lib.rs} - Top level file for the crate, which exports public functions.
+            \item \texttt{ast.rs} - Types for the abstract syntax and implementation of variable substition, based on examples from \texttt{moniker}.
+            \item \texttt{check.rs} - Functions for inferring and checking types of terms.
+            \item \texttt{concrete.rs} - Types for the concrete syntax which is produced after parsing, and function to convert to abstract syntax.
+            \item \texttt{context.rs} - Type for the context used in the type checking.
+            \item \texttt{equal.rs} - Evaluation of a term's normal form and checking for equality between terms.
+            \item \texttt{error.rs} - Types used to track errors in type checking.
+            \item \texttt{parser.rs} - Re-exports the parsing function provided by LALRPOP, with a cleaner inferface.
+            \item \texttt{print.rs} - Functions for pretty printing terms.
+            \item \texttt{grammar.lalrpop} - Describes the grammar used by LALRPOP to generate the parser.
+        \end{itemize}
+    \end{itemize}
+    \item \texttt{dpl-cli} - The crate containing the language frontend.
+    \begin{itemize}
+        \item \texttt{Cargo.toml} - Manifest file specifying dependencies. This includes a dependency on the \texttt{dpl} crate.
+        \item \texttt{src} - Contains all other Rust source files.
+        \begin{itemize}
+            \item \texttt{main.rs} - The main entry point of the application. Decides whether to read from a file or from stdin, then parses and type checks the program.
+        \end{itemize}
+    \end{itemize}
+    \item \texttt{examples} - \todo{change name and do this}
+\end{itemize}
+
+\todo{etc.}
+
+\chapter{Evaluation}
+
+\todo{eval}
+
+
+\chapter{Conclusions}
+
+\todo{conclusions}
+
+\chapter*{etc.}
+\todo{appendix, proposal, report}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

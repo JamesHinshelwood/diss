@@ -1,0 +1,30 @@
+\usepackage[pdfborder={0 0 0}]{hyperref} % turns references into hyperlinks
+\usepackage[margin=25mm]{geometry} % adjusts page layout
+\usepackage{graphicx} % allows inclusion of PDF, PNG and JPG images
+\usepackage{docmute} % only needed to allow inclusion of proposal.tex
+\usepackage{makecell} % allows newlines in table entries
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{mathpartir}
+\usepackage{pgffor}
+
+\lstset{basicstyle=\ttfamily}
+
+\setlist{nosep}
+
+\newcolumntype{R}{>$r<$}
+
+% try to avoid widows and orphans
+\raggedbottom
+\sloppy
+\clubpenalty1000
+\widowpenalty1000
+
+\renewcommand{\baselinestretch}{1.1} % adjust line spacing to make more readable
+
+\newcommand{\todo}[1]{[#1]}
+
+\newcommand{\citeneeded}[0]{[citation needed]}
