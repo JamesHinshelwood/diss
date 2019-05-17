@@ -12,11 +12,11 @@
 
 \vspace*{60mm}
 \begin{center}
-\Huge
-\textbf{Implementing a Dependently Typed Programming Language} \\[5mm]
-Computer Science Tripos -- Part II \\[5mm]
-Selwyn College \\[5mm]
-\today
+    \Huge
+    \textbf{Implementing a Dependently Typed Programming Language} \\[5mm]
+    Computer Science Tripos -- Part II \\[5mm]
+    Selwyn College \\[5mm]
+    \today
 \end{center}
 
 
@@ -25,222 +25,1211 @@ Selwyn College \\[5mm]
 
 I, James Hinshelwood of Selwyn College, being a candidate for Part II of the Computer Science Tripos, hereby declare that this dissertation and the work described in it are my own work, unaided except as may be specified below, and that the dissertation does not contain material that has already been used to any substantial extent for a comparable purpose.
 
+I, James Hinshelwood of Selwyn College, am content for my dissertation to be made avaiable to the students and staff of the University.
+
 \bigskip
 \leftline{Signed James Hinshelwood}
 
 \medskip
-\leftline{Date [date]}
+\leftline{Date \today}
 
 \chapter*{Proforma}
 
 {\large
-\begin{tabular}{ll}
-Candidate number: & \todo{candidate number} \\
-Project Title: & \makecell[l]{Implementing a Dependently Typed \\ Programming Language} \\
-Examination: & Computer Science Tripos -- Part II \\
-Year: & 2019 \\
-Word Count: & \todo{word count} \\
-Line Count: & \todo{line count} \\
-Project Originator: & \todo{originator} \\
-Supervisor: & \todo{neel} \\ 
-\end{tabular}
+    \begin{tabular}{ll}
+        Candidate number:   & 2239B                                                                                                                                                                        \\
+        Project Title:      & \makecell[lt]{Implementing a Dependently Typed                                                                                                                               \\ Programming Language} \\
+        Examination:        & Computer Science Tripos -- Part II                                                                                                                                           \\
+        Year:               & 2019                                                                                                                                                                         \\
+        Word Count:         & \input{|"detex -n diss.tex | wc -w"}                                                                                                                                         \\
+        Line Count:         & \input{|"find /home/james/part2-project/impl/dpl \string\( -name *.rs -o -name *.lalrpop \string\) -not -path */target/* | xargs wc -l | tail -n 1 | head -c 5 | tail -c 4"} \\
+        Project Originator: & The dissertation author                                                                                                                                                   \\
+        Supervisor:         & Dr N. Krishnaswami                                                                                                                                                           \\
+    \end{tabular}
 }
 
 \section*{Original Aims of the Project}
 
-\todo{aims}
+The original aim of my project was to design and implement a dependently typed programming language, based on the \(\lambda\) calculus.
+The language needed to support datatype declarations, which allow the user to define new types.
+I planned to write various example programs in the language, to demonstrate its unique features.
+The extensions I set out were to implement pattern matching, type inference and implicit arguments, along with updating the examples to use these new features.
 
 \section*{Work Completed}
 
-\todo{work}
+I have completed the primary aims of my project.
+I have designed the theory and implemented a type checker and interpreter for a dependently typed language.
+Implementing datatypes was considerably more involved that I originally envisaged, but was ultimately successful, albeit in a different style than I had imagined.
+I have also implemented the type inference extension item.
 
 \section*{Special Difficulties}
 
-\todo{difficulties}
+None.
 
 \tableofcontents
 
 \chapter{Introduction}
 \pagestyle{headings}
 
-Type systems help us write less error-prone code.
+Type systems help programmers write less error-prone code.
 By detecting certain errors at compile time, we are able to reject many invalid programs, before they can be run.
-As the expressivity of type systems has improved, so has their ability to detect a greater range of type errors.
-For example, polymorphic type systems are able to express functions which are generic over multiple types.
-Without polymorphism, programmers must either resort to excessive code repetition or unsafe features, such as void pointers.
+In general, as the expressivity of a language's type system improves, so does its ability to detect a greater range of errors.
+The simplest type systems might prevent basic logical errors, such as trying to add integers to lists.
+One improvement we can add to this basic type system is to add polymorphism.
+This allows us to express generic functions, which are valid over multiple types.
+Without polymorphism, programmers must either resort to excessive code repetition, where function definitions are repeated for every type they might be needed for, or error-prone untyped representations, such as void pointers.
 
-Dependent types extend the power of type systems even further, by allowing types which are refined by values.
-A common example of a dependent type is length-indexed lists, usually referred to as Vectors, where the number of elements in the list is included as part of the type.
-We can then refine the type of functions operating on vectors, to better express their behaviour. For example the zip function which combines two lists can be typed as \lstinline{zip : Vec A n -> Vec B n -> Vec (A, B) n}.
-Here, the types specify that both input vectors must be of the same size, and the resulting vector will also be that size.
-If the programmer tries to pass vectors which are not the same size, the program will not typecheck.
-In a non-dependently typed language, where the length is not statically specified, the \lstinline{zip} function would have to deal with this case less gracefully, by for example, throwing an error.
+Dependent types extend a type system's expressivity even further, by allowing types to depend on values.
+In a non-dependent language, function types are written as \(A \rightarrow B\), but dependent types extend this definition to \(\pi{a}{A}{B}\).
+The type \(B\) may refer to the variable \(a\), allowing it to depend on the value of the argument.
 
-Dependent types do not come for free though, as they add significant complexity to both the type checker and the language itself. By allowing values to appear within types
+The power of dependent types is best expressed with a motivating example.
+The \texttt{zip} function on \texttt{List}s takes two lists of the same type and combines them.
+Its type signature is
+\[
+    \annot{\texttt{zip}}{\forall A, B \ldotp \upi{\app{\texttt{List}}{A}}{\upi{\app{\texttt{List}}{B}}{\app{\texttt{List}}{(A, B)}}}}
+\]
+However, when implementing \texttt{zip} we must deal with the case where the two input lists have different lengths.
+We might decide to silently shorten the length of the resulting list to the minimum of the two input lists.
+Alternatively, we could raise an exception to the caller.
+Neither of these options are particularly satisfying from a safety and usability point of view.
+Instead, dependent types let us express the fact that both input lists must have the exact same length.
 
-My language aims to be close to the \(\lambda\)-calculus, in which every term is an expression. It does not include some of the higher level features that exist in some other dependently typed langauges, such as implicit arguments and termination checking. The language features let bindings, (recursive) algebraic data types and propositional equality.
+We first define a datatype for length-indexed lists, usually called vectors.
+\[
+    \annot{\texttt{Vector}}{\upi{\type}{\upi{\texttt{Nat}}{\type}}}
+\]
+We may then redefine \texttt{zip} on vectors instead of lists.
+\[
+    \annot{\texttt{zip}}{\pi{n}{\texttt{Nat}}{\upi{\app{\app{\texttt{Vector}}{A}}{n}}{\upi{\app{\app{\texttt{Vector}}{B}}{n}}{\app{\app{\texttt{Vector}}{(A, B)}}{n}}}}}
+\]
+We make use of the dependent function type to ensure the vector types all have the same length.
+If we try to invoke \texttt{zip} with vectors of different length, the type checker will automatically reject the invocation, at compile time.
 
-\todo{survey of previous work}
+Dependent types add considerable complexity to both the type theory and language implementation.
+By allowing values, or more generally, full expressions, to appear within types, we  the type checker must be capable of evaluating arbitrary expressions.
+In a Turing complete language, there is no guarantee that a given expression will terminate, meaning the type checker may inherit this non-termination.
+It is also known that full type inference becomes undecidable with dependent types \cite{gilles93}, so manual type annotations are required on most functions.
+
+\section{Previous Work}
+
+A number of dependently typed programming languages already exist.
+Agda \cite{norell07} is a mature and widely used language and offers many high level programming features, such as implicit arguments, pattern matching, metavariable solving and a module system.
+Idris \cite{brady13} is another popular dependently typed language, which offers many of the same features as Agda, but aims to target more general purpose programming.
+Performance is also a more central design goal of Idris.
+
+There are also many papers which describe simple languages, aimed at exploring the theory of dependent type systems in more detail.
+LambdaPi \cite{loeh10} provides a very good introduction to the implementation of dependent type systems, without any of the higher level features included in practical languages.
+PiSigma \cite{thorsten10} describes a language intended as a desugared version of a higher level dependently typed language.
+It describes some extra features not covered by LambdaPi, such as sigma types and recursion.
+However, the formulation of recursive types differs from the one I present and explicit equality types are not included, unlike in my language.
+
+\section{The \pimu{} Language}
+
+I have developed the theory and implemented the type checker for a dependently typed language, \pimu{} (pronounced pi-mu).
+My language aims to have a syntax close to the \(\lambda\)-calculus, for reasons of simplicity and familiarity.
+There is only a single level of syntax, which includes both types and terms.
+Datatype declarations and type-level functions are both definable as regular terms, leading to a relatively simple presentation of the type theory.
+It does not include some of the higher level features that exist in some other dependently typed languages, such as implicit arguments, term holes and pattern matching.
+This is an intentional choice to keep the scope of the project manageable, but I have made an effort to ensure the theory and implementation are easily extendable.
+Notable features of the language are indexed recursive datatypes, recursive functions, let bindings, dependent product types, sum types and explicit equality types.
+These will all be explained in detail in the implementation section of this dissertation.
 
 \chapter{Preparation}
 
 \section{Requirements Analysis}
 
+I set out the following requirements in order to achieve the aims of the project:
+\begin{itemize}
+    \item Develop the theory for the language, which includes:
+          \begin{itemize}
+              \item Specification of syntax
+              \item Type checking judgement
+              \item Term equality and normalisation
+          \end{itemize}
+    \item Implement all components of the theory, using the Rust\footnote{\url{https://www.rust-lang.org/}} programming language
+          \begin{itemize}
+              \item Design and write the code in a modular and composable manner.
+              \item Write unit tests to ensure the individual components of the implementation are behaving as expected.
+              \item Write integration tests which will include the example programs below.
+          \end{itemize}
+    \item Write example programs which demonstrate the features of the language:
+          \begin{itemize}
+              \item Definition of booleans, with useful operations
+              \item Definition of natural numbers, with addition and proofs of a selection of theorems
+              \item Vectors, with common operations such as head, tail, zip and append
+          \end{itemize}
+\end{itemize}
 
-\todo{prep}
+\section{Designing the Language}
+
+Before I started drawing out the formal theory of \pimu{}, I had to make some high level language design decisions, based on what my goals for the language were.
+I decided to design my language with a syntax and type system close to the simply typed \(\lambda\) calculus.
+This ensured the theory and implementation stayed reasonably simple and understandable and also to manage the scope of my project.
+I also wanted to ensure types were first class in the language, putting them at the same syntactic level as terms, as dependent types make this presentation very intuitive.
+Functions are able to take or return types just like they can take and return values.
+Datatypes are also expressed as normal terms, rather than being a separate construct like might be the case in other languages.
+I planned the original implementation of datatypes, using a standard isorecursive presentation.
+However, I had to alter this to support indexed datatypes.
+Both dependent function and product types (\(\Pi\) and \(\Sigma\) types) were included in the design, as this would allow me to experiment with writing proofs in the language.
+After some research and experimentation, I decided to use a bidirectional typing approach \cite{pierce98} for the language.
+This is a style of typing judgement which allows the type of terms to be automatically inferred if possible or otherwise checked against a type given by the programmer.
+Although this would complicate the theory and implementation, I knew it would greatly improve the usability of the language, giving it a limited form of type inference.
+
+\section{Planning the Implementation}
+
+I selected Rust as the host language for my implementation.
+This was because I was reasonably familiar with Rust, but wanted to explore the language more.
+It was interesting to me to attempt to write a type checker in an imperative language, rather a functional language as is more common for experimental programming language implementations.
+Rust was a good choice as it also supports many useful features common in functional languages, such as algebraic data types and pattern matching.
+These features allowed me to easily model and manipulate the abstract syntax tree of \pimu{}.
+Rust forces the programmer to be explicit about a datatype's memory layout, which results in some extra boilerplate in the code.
+Another reason I selected Rust is because testing is strongly integrating into the language, without any need for an additional testing framework.
+I researched the availability of relevant Rust libraries (crates), which I knew would be needed for the implementation.
+This included finding a crate to manage variable binding and a suitable parser generator.
+
+I decided to implement the language's parser using a parser generator, rather than another approach, such as writing my own parser or using a parser combinator library.
+This made it easier for me to iterate on the language's syntax as I was implementing its features.
+
+\subsection{Testing}
+
+Tests were used throughout the implementation to minimise the likelihood of errors.
+
+Unit tests are used to test the language parser, the syntax tree conversions, the pretty printer and the actual type checker. \todo{tbd}
+These tests cases cover both normal and erroneous input data, as I want to ensure any parsing or type checking errors returned to the user are valid and useful.
+
+Integration tests are included as part of the evaluation of my project.
+These ensure the specified example programs successfully type check.
+
+\section{Evaluation Criteria}
+To evaluate my project, I outlined a minimum set of programs, which the implementation had to be able to successfully type check and evaluate.
+\begin{itemize}
+    \item Booleans - A program which defines the type of boolean values, to demonstrate the usage of basic sum types.
+    This should also include an ifthenelse expression which can branch based on a boolean value as well as a not expression, which inverts a boolean value.
+    \item Natural numbers - A program defining the type of unary natural numbers, to demonstate simple recursive types.
+    Addition should be defined on these numbers, to show how recursive functions are used.
+    This program should also have proofs of some theorems involving natural numbers, to demonstrate the possibility of using the language as a theorem prover.
+    An ambitious, but achievable theorem to prove is the commutativity of addition, since this consists of a number of necessary subtheorems.
+    \item Vectors - The definition of length-indexed vectors, to demonstrate indexed recursive types.
+    The operations should include at least head, tail, append and zip, as these are common operations on vectors and provide a good cross-section of complexities of implementation.
+\end{itemize}
+These programs were specifically selected to demonstrate the extra expressivity that dependent types give us.
 
 \section{Starting Point}
+
+I will outline the starting point for the development of the theory, its implementation and the language examples separately, as the sections are largely disjoint.
+
 \subsection{Theory}
 
+I read many papers on the subject of dependent types which helped me gain a general familiarity with the relevant theory.
+The first introduction to dependent types I read was LambdaPi \cite{loeh10}.
+The syntax of \pimu{} was inspired by the language presented in PiSigma \cite{thorsten10}.
+I also found the explanation of dependent types from Advanced Types and Programming Languages \cite{aspinall04} helpful for developing my own theory.
+Some other features of the theory, such as function recursion and isorecursive types, come from Pierce's other book on type systems \cite{pierce02}.
+Finally, I used Christiansen's notes on bidirectional type checking \cite{christiansen13} to learn the details of the technique.
+
 \subsection{Implementation}
+
+I have used Rust to implement \pimu{}'s theory and my implementation depends on the Rust Standard Library\footnote{\url{https://doc.rust-lang.org/std/}}, as well as a number of external dependencies, known as crates in Rust's terminology.
+I referred to the examples and documentation of these crates when integrating them into my project, meaning some snippets of code may be similar.
+
+\subsubsection{External Dependencies}
+
 \begin{itemize}
-    \item Rust Standard Library
-    \item Moniker crate\footnote{\url{https://github.com/brendanzab/moniker}} - Provides abstractions for variable binding and scoping.
-    \item LALRPOP crate\footnote{\url{https://github.com/lalrpop/lalrpop}} - Parser generator.
-    \item \todo{Dependencies}
+    \item Moniker\footnote{\url{https://github.com/brendanzab/moniker}} - Provides abstractions which allow me to describe variable binding and scopes directly in the abstract syntax tree and automatically derive the necessary machinery to handle variables.
+    \item LALRPOP\footnote{\url{https://github.com/lalrpop/lalrpop}} - Parser generator framework, meaning I can describe the syntax of \pimu{} declaratively, rather than hand-writing a parser.
+    \item Regex\footnote{\url{https://github.com/rust-lang/regex}} - A Rust implementation of regular expressions, which I used in the description of variable identifiers in the language's grammar.
+    \item Lazy static\footnote{\url{https://github.com/rust-lang-nursery/lazy-static.rs}} - A small Rust macro, allowing for lazy initialisation of static variables.
+          I use it to initialise the LALRPOP parser.
+    \item Structopt\footnote{\url{https://github.com/TeXitoi/structopt}} - Provides a macro to declaratively describe a command line argument parser, which I use in the frontend of \pimu{}.
 \end{itemize}
+
+\subsection{Program Examples}
+
+When writing the \pimu{} example programs, I referred to a number of sources.
+The definitions, functions, and theorems involving natural numbers and vectors were based on Idris' \cite{brady13} standard library\footnote{\url{https://github.com/idris-lang/Idris-dev/blob/master/libs/prelude/Prelude/Nat.idr}}\footnote{\url{https://github.com/idris-lang/Idris-dev/blob/master/libs/base/Data/Vect.idr}}.
+The \texttt{logic} example is based on the logic chapter of Software Foundations \cite{pierce18}.
+The formulation of Hurkens' paradox was based on an Agda \cite{loeh10} integration test\footnote{\url{https://github.com/agda/agda/blob/master/test/Succeed/Hurkens.agda}}.
+
+\subsection{Discrepancies from Project Proposal}
+
+The most notable difference from my project proposal is the choice of the implementation language.
+Originally, I intended to use OCaml for the implementation, however after planning the implementation I decided to switch to Rust.
+This was because I wanted to experiment with Rust
 
 \chapter{Implementation}
 
-This chapter will first describe the theory of the language and the decisions made in its design, and then describe the concrete implementation.
+This chapter will first describe the theory of the language and the decisions made in its design, then describe the concrete implementation of the type checker.
 
 \section{Theory}
 
+While presenting the theory, I will incrementally build up the language, explaining each new feature as it appears.
+The full specification for \pimu{} is available in the appendix. \todo{tbd}
+
 \subsection{Syntax}
 
-\begin{figure}
-    \syntax{}
-    \caption{Language syntax}
-    \label{syntax}
-\end{figure}
+Normal non-dependent languages generally describe the syntax of terms and types seperately.
+Dependent types allow these syntaxes to be unified, resulting in an elegant presentation where type-level functions can take or return types in the same way as normal functions.
+I will use the metavariables \(e\) and \(\tau\) to refer to terms and types respectively, however this distinction is only a hint to the reader and is not enforced by the syntax.
 
-\todo{include examples of terms?}
-
-The full syntax of the language is described in figure~\ref{syntax}.
-
-Dependent types allow the syntax of values, types and kinds to be unified.
-The metavariables \(e\) and \(\tau\) are used to hint as to the expected usage of a term.
-
-A bidirectional typing algorithm is used, so terms may be annotated by their types, to move the algorithm from inference mode to checking mode.
-
-There is only a single kind, \lstinline{Type}, representing the type of other types.
-This introduces partiality into the language, meaning false can be proven.
-However, there are other proofs of false arising from general recursion and the lack of a termination checker, so I have opted for the simpler theory, with a single type universe.
-I will expand on this further later\todo{non-termination}.
-
-\todo{Remove declaration from language?}
-
-Dependent function types are also known as pi types. These differ from regular function types in that the argument of type \(\tau_1\) and bound by \(x\), might appear in the return type \(\tau_2\). In the special, non-dependent case where \(x\) does not appear in \(\tau_2\), the type can be written as \(\tau_1 \rightarrow \tau_2\). Pi types are introduced and eliminated in the expected manner, by lambda terms and application. An annotation for the argument type is not needed in lambda terms, thanks to the bidirectional typing algorithm.
-
-Dependent pair types are also known as sigma types and are similar to pi types.
-Again, the type of the second element \(\tau_2\) may include the value of the first element and non-dependent pairs may be written as just \(\tau_1 \times \tau_2\).
-
-Sum types may include any number of variants, each of which must be labelled.
-
-The equality type represents propositional equality between two terms.
-I will explain this further in its own section. \todo{?}
-
-Recursive types are in development \todo{do}
-
-\todo{Correspondance to logic, thus we can do proofs!}
-
-\subsection{Typing System}
-
-The type system needs to compute equality between terms, but simple alpha equivalence is not enough.
-If a function expects a \lstinline{Vect A 2} and a \lstinline{Vect A (plus 1 1)} is passed in, it is expected that the program would type check.
-Therefore, a definition of equality is required which is able to perform beta reduction.
-This is achieved by first computing terms to a normal form which performs reductions, then checking for alpha equivalence. \todo{add gamma to $\equiv$}
+The annotation syntax allows the programmer to annotate a term with a type, to assist the type checker when the type cannot be unambiguously inferred.
 \[
-    (e_1 \equiv e_2) \overset{\textit{def}}{=} (\nf{\Gamma}{e_1} =_{\alpha} \nf{\Gamma}{e_2})
+    \annot{e}{\tau} \qquad\qquad \textit{annotation}
 \]
-Normal forms are defined as
-\nfs
-\todo{etc}
 
-It is worthy to note that this equality is different from the equality type present in the language.
-This is \todo{definitional} equality, which is computed automatically by the type checker.
-However some equalities are not so simple and must be proven by the programmar, by provding an equality type. \todo{unclear}
+Variables are indicated with the letter \(x\) and may occur anywhere within a term or type.
+\[
+    x \qquad\qquad \textit{variable}
+\]
 
-A bidirectional typing algorithm \citeneeded is presented in figure~\ref{rules}.
+We also need to include a type for all other types, usually called a kind.
+This may be used when typing functions which can take or return other types.
+\[
+    \type{} \qquad\qquad \textit{type of types}
+\]
+
+The type of dependent functions is written as \(\pi{x}{\tau_1}{\tau_2}\) and this type may also be referred to as a \(\Pi\)-type.
+The difference between \(\Pi\)-types and regular function types is that the value of the argument, which has type \(\tau_1\) and is bound by \(x\), might appear in the return type \(\tau_2\).
+\[
+    \pi{x}{\tau_1}{\tau_2} \qquad\qquad \textit{pi type}
+\]
+In the special case where \(x\) does not appear in \(\tau_2\), the type can be simply written as \(\tau_1 \rightarrow \tau_2\).
+
+\(\Pi\)-types are introduced and eliminated with lambda abstractions and application.
+\begin{align*}
+    \fun{x}{e} \qquad\qquad & \textit{lambda abstraction} \\
+    \app{e_1}{e_2} \qquad\qquad & \textit{application}
+\end{align*}
+In line with normal convention, the \(\rightarrow\) associates to the right, meaning \(\pi{A}{\type{}}{\upi{A}{A}}\) is parsed as \(\pi{A}{\type{}}{(\upi{A}{A}})\).
+
+This syntax now gives us enough to define the polymorphic identity function, which takes a type and a value of that type, and returns the value.
+\[
+    \annot{\fun{A}{\fun{a}{a}}}{\pi{A}{\type{}}{\upi{A}{A}}}
+\]
+The lambda abstraction on the left is annotated with the \(\Pi\)-type on the right.
+In the \(\Pi\)-type, we bind the \emph{value} of the first argument to the variable \(A\), which we then use to describe the \emph{type} of the second argument and the return type.
+
+The language also supports general recursion with the \(\fix{e}\) operator.\todo{defer fix till recursive types are introduced}
+
+Let bindings are included in the language, allowing the programmer to bind a value to a variable to be used later.
+\[
+    \lett{x}{e_1}{e_2} \qquad\qquad \textit{let binding}
+\]
+An alternative option was to treat let bindings as `syntactic sugar' for a combination of function abstraction and application:
+\[
+    \lett{x}{e_1}{e_2} \overset{\textit{def}}{=} \app{(\fun{x}{e_2})}{e_1}
+\]
+I chose to avoid this, as it would have resulted in unclear error messages when type errors occurred in let bindings, since the user would see the error in the desugared version of the program, rather than the one they actually wrote.
+
+Dependent pair types or \(\Sigma\)-types, are the dependent generalisation of normal product types, which allow the programmer to represent pairs of types.
+\[
+    \sigma{x}{\tau_1}{\tau_2} \qquad\qquad \textit{sigma type}
+\]
+What \(\Sigma\)-types give us over regular product types is that the type of the second element \(\tau_2\) may refer to the value of the first element.
+In line with \(\Pi\)-types, non-dependent pairs may be written as just \(\tau_1 \times \tau_2\).
+
+\(\Sigma\)-types are constructed by providing a pair of terms and eliminated with the first and second projection operators.
+\begin{align*}
+    (\pair{e_1}{e_2}) \qquad\qquad &\textit{dependent pair} \\
+    \fst{e} \qquad\qquad &\textit{first projection} \\
+    \snd{e} \qquad\qquad &\textit{second projection}
+\end{align*}
+
+Sum types let the programmer model types which can be one of multiple variants.
+There is no dependent version of sum types, so the presentation is \pimu{} is similar to the traditional one.
+The only difference is that each variant of a sum type requires a label and the type may consist of any number of pairs of labels and types, including none.
+\[
+    \sumi{l}{\tau} \qquad\qquad \textit{sum type}
+\]
+
+Sum types are constructed with a variant term and eliminated by a case split.
+\begin{align*}
+    \variant{l}{e} \qquad\qquad &\textit{variant} \\
+    \casei{x_0}{e_0}{e_1}{l}{x}{e} \qquad\qquad &\textit{case with optional annotation}
+\end{align*}
+Dependent types allow us to write a stronger typing judgement for case splits than in normal languages, however this requires the programmer to annotate the case statement.
+Sometimes this can be cumbersome and the stronger typing rule may not be needed, so in \pimu{} the annotation is optional.
+\todo{change e0 to tau?}
+
+\todo{mention false encodings when talking about curry-howard}
+
+The unit type is a special type which only has a single constructor.
+\begin{align*}
+    \Unit{} \qquad\qquad &\textit{unit type} \\
+    \unit{} \qquad\qquad &\textit{unit}
+\end{align*}
+
+There is an eliminator for the unit type, however it is very rarely used in practice, because the programmer will always know that a term of type \Unit{} is \unit{}.
+\[
+    \unitelim{x}{\tau}{e_1}{e_2} \qquad\qquad \textit{unit eliminator}
+\]
+This eliminator includes a type annotation, which is used to refine the type of the overall term, in a similar manner as the annotated case splits above.
+
+The only time this term is useful is when you need to convince the type checker that an arbitrary term of type \Unit{} is indeed \unit{}, since it cannot deduce this automatically.
+An example of this is seen in the natural numbers program.
+
+We can now write booleans in \pimu{}, using sum types.
+Since no information is needed in both elements of the sum type, we use \(\Unit\) for the type and ignore it when we case split.
+\begin{align*}
+    \texttt{Bool} &= \sum{\texttt{T}/\Unit{},\texttt{F}/\Unit{}} \\
+    \texttt{true} &= \annot{\variant{\texttt{T}}{\unit{}}}{\texttt{Bool}} \\
+    \texttt{false} &= \annot{\variant{\texttt{F}}{\unit{}}}{\texttt{Bool}} \\
+    \texttt{ifthenelse} &= \fun{A}{\fun{b}{\fun{t}{\fun{f}{\case{b}{\texttt{T}/\_/t,\texttt{F}/\_/f}}}}}
+    \\
+    &: {\pi{A}{\type{}}{\upi{\texttt{Bool}}{\upi{A}{\upi{A}{A}}}}}
+\end{align*}
+
+The equality type represents propositional equality between two terms at a given type.
+\[
+    \eq{e_1}{e_2}{\tau} \qquad\qquad \textit{equality type}
+\]
+
+The only way to introduce an equality type is to say that a term is equal to itself, using the reflexivity of equality.
+\[
+    \refl \qquad\qquad \textit{equality introduction}
+\]
+
+The elimination form for equality lets us use an equality proof to convert a term from one type to another. 
+\[
+    \j{e_1}{e_2}{x}{e_3} \qquad\qquad \textit{equality elimination}
+\]
+I will explain this further, after introducing the typing judgement.
+
+Recursive types allow infinitely recursive datatypes to be expressed in \pimu{}.
+\[
+    \rec{x_1}{x_2}{\tau} \qquad\qquad \textit{indexed recursive type}
+\]
+An important distinction of my presentation to the traditional, non-dependent one is that recursive types are indexed by a parameter.
+This allows recursive types such as Vectors to be represented.
+The index of a recursive type may change at whenever it is folded or unfolded.
+To keep the presentation simple, I require that all recursive types have an index, despite some types not actually needing this.
+For these types, an index of type \(\Unit\) can be used and a type alias defined to hide the index whenever the type is mentioned.
+
+An iso-recursive presentation is used, meaning recursive types must be explicitly folded and unfolded.
+\begin{align*}
+    \fold{e} \qquad\qquad &\textit{fold} \\
+    \unfold{e} \qquad\qquad &\textit{unfold}
+\end{align*}
+In a higher level language with a separate datatype declaration syntax, these manipulations would not be needed, but I have chosen to keep the presentation explicit.
+
+Unary natural numbers can now be defined as follows.
+As mentioned above, we use \Unit{} as the index, then define a type alias which hides it.
+\begin{align*}
+    \texttt{Nat}' &= \annot{\rec{n}{u}{\sum{\texttt{zero}/\Unit, \texttt{succ}/\app{n}{u}}}}{\upi{\Unit{}}{\type{}}} \\
+    \texttt{Nat} &= \app{\texttt{Nat}'}{\unit{}} \\
+    \texttt{zero} &= \annot{\fold{(\variant{\texttt{zero}}{\unit})}}{\texttt{Nat}} \\
+    \texttt{succ} &= \annot{\fun{n}{\fold{(\variant{\texttt{succ}}{n})}}}{\upi{\texttt{Nat}}{\texttt{Nat}}}
+\end{align*}
+
+The final item of syntax in \pimu{} allows recursive functions to be defined over recursive types.
+\[
+    \fix{e} \qquad\qquad\textit{fixed point}
+\]
+Though the syntax suggests that a fixed point may be taken, the type system enforces that it can only be used for functions which take a recursive type, along with the index of that type.
+
+This allows us to define the addition of unary natural numbers as follows
+\begin{align*}
+    \texttt{plus}' &= \fix{(\fun{\texttt{plus}}{\fun{\_}{\fun{m}{\fun{\_}{\fun{n}{\\
+        &\texttt{case}\ \unfold{m}\ \texttt{of}\ \texttt{<}\texttt{zero} = \_\texttt{>} \rightarrow n
+        \mid \texttt{<}\texttt{succ} = m'\texttt{>} \rightarrow (\app{\app{\app{\app{\texttt{plus}}{\unit{}}}{m'}}{\unit{}}}{n})
+    }}}}})}
+    \\
+    &: \upi{\Unit}{\upi{\texttt{Nat}}{\upi{\Unit}{\upi{\texttt{Nat}}{\texttt{Nat}}}}} \\
+    \texttt{plus} &= \annot{\fun{m}{\fun{n}{\app{\texttt{plus}'}{\app{\app{m}{\unit}}{\app{n}{\unit}}}}}}{\upi{\texttt{Nat}}{\upi{\texttt{Nat}}{\texttt{Nat}}}}
+\end{align*}
+The recursive call to the function is bound by a lambda to the variable \texttt{plus}, which is then called in the successor branch of the case split.
+As mentioned above, the index must be included when the recursive call is made, resulting in the extraneous \unit{}s above, but we hide these with another function to make using \texttt{plus} convenient.
+
+\subsection{Substitution}
+
+Free variables in a term may be substituted for other terms.
+Substituting the term \(t_2\) for \(x\) which is free in \(t_1\) is denoted as
+\[
+    [t_2 / x] t_1
+\]
+
+Sometimes multiple simultaneous substitutions are required, in which case they are written within the same square brackets, but separated by commas.
+
+Substitution is defined to be capture-avoiding, meaning if there are free variables in \(t_2\) which might be captured by binders in \(t_1\) after substitution, they are implicitly \(\alpha\)-renamed to avoid this capture.
+The details of this process are an implementation detail and are not relevant when presenting the theory, however they will be examined in the implementation section.
+
+\subsection{Term Equivalence}
+
+The type system needs to be able to compute whether two terms are equal, however simple alpha equivalence is not enough.
+If a function expects a \lstinline{Vect A 2} and a \lstinline{Vect A (plus 1 1)} is passed in, we want the program to type check, meaning we must be able to decide that \lstinline{2} is equivalent to \lstinline{plus 1 1}.
+A stronger definition of equality is required, which is able to detect the beta equivalence of terms.
+This is achieved by first converting terms to a normal form, which are then checked for alpha equivalence:
+\[
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'} \\ e_1' \aeq e_2'} {e_1 \equiv e_2}
+\]
+During the normalisation process, beta reductions are performed.
+Normal forms are computed using the following judgement:
+
+\norm{}
+
+Most of these judgements simply recurse into a larger term and normalise its component parts.
+The interesting rules occur when an eliminator meets a constructor.
+For example, if the first term of an application is a \(\lambda\) abstraction, beta reduction is performed, where the argument of the application is substituted into the body of the abstraction.
+Similar rules apply to pairs, sum types, equality types and recursive folds and unfolds.
+
+Special attention is needed for recursive definitions, defined with \(\fix{e}\).
+A na\"ive implementation of normalisation might include a rule
+\[
+    \inferrule{\nf{e}{\fun{f}{e'}} \\ \nf{[(\fix{e}) / f] e'}{e''}} {\nf{\fix{e}}{e''}}
+\]
+which unrolls the recursive function, replacing the inner occurence of the function with itself.
+However, this rule is incorrect, since normalisation also occurs inside \(\lambda\) abstractions.
+The normalisation procedure equipped with the above rule would repeatedly unroll the \texttt{fix}, then proceed inside the lambda and unroll the new \texttt{fix}.
+
+Instead, we make sure only to unroll a \(\fix{f}\) once it has been fully applied.
+The type system ensures all occurences of \texttt{fix} have the form, \(\fix{(\fun{f}{\fun{x}{\fun{r}{e}}})}\), where \(r\) is a recursive type and \(x\) is a value with the type of \(r\)'s index.
+This means when normalising, we can ensure a recursive function has been applied to all its necessary arguments and only then do we make the necessary substitutions.
+
+In the above rules optional annotation on case splits is ommitted, as the definition is exactly the same with and without the annotation.
+
+It is important to note that the equality presented above is different from the explicit equality type in the language.
+\(\equiv\) denotes definitional equality (sometimes called judgemental equality) and is computed automatically by the typechecker.
+The other type of equality (propositional equality) is represented with an explicit equality type, and proofs of this equality must be provided by the programmer.
+
+Only beta reduction is included in the normalisation procedure, which occurs when an eliminator for a type is applied to a constructor of that same type.
+For example, the beta reduction rule for the first projection of pairs is
+\[
+    \fst{(\pair{e_1}{e_2})} \rightsquigarrow_\beta e_1
+\]
+I could also have added eta conversion rules, which are applied when a constructor is applied to an eliminator.
+For pairs this reduction is
+\[
+    \pair{(\fst{p}}{\snd{p})} \rightsquigarrow_\eta p
+\]
+However, I chose to omit eta conversion from normalisation, mainly to ensure the implementation was simple.
+Also, if I were to add eta conversion for equality types, it would have strong, undesirable theoretical consequences \cite{streicher93}.
+It would mean that ``that definitional equality depends on inhabitation of identity types, this makes definitional equality and hence type-checking undecidable'' \cite{nlabid}.
+
+\subsection{Bidirectional Typing}
+
+Bidirectional typing \cite{pierce98} is a style of typing judgements which ensure the judgement is syntax-directed and the syntax stays natural and intuitive.
+Syntax-directed means each item of the syntax has a corresponding unique typing derivation.
+This property leads to a simple typing algorithm, where the abstract syntax tree is recursed over and the syntax is matched to the correct typing rule.
+However, the obvious presentation of the \(\lambda\)-calculus does not have this property.
+Function abstractions have a syntax of \(\fun{x}{e}\) and type judgement:
+\[
+    \inferrule{\typing{\Gamma, x: \tau_1}{e}{\tau_2}} {\typing{\Gamma}{\fun{x}{}{e}}{\pi{x}{\tau_1}{\tau_2}}}
+\]
+This rule is not syntax-directed, because the typing rule is not uniquely determined by the syntax.
+When implementing this rule, the algorithm would be required to add \(x : \tau_1\) to the context, but there is no way of determining what \(\tau_1\) actually is.
+
+A common and simple solution to restore the syntax-directed property is to require a type annotation on ambiguous terms, changing the function abstraction syntax to \(\funt{x}{\tau_1}{e}\).
+However, this can make programs hard to read, especially in long chains of function abstractions.
+
+Instead, bidirectional typing allows us to make the typing judgement syntax-directed, while keeping the natural syntax.
 Two mutually defined typing judgements are used.
 One judgement \(\infer{\Gamma}{e}{\tau}\) takes a context \(\Gamma\) and a term \(e\) as input and synthesises a type \(\tau\).
 The other judgement \(\check{\Gamma}{e}{\tau}\) takes a context \(\Gamma\), a term \(e\) and a type \(\tau\) and checks if \(e\) has type \(\tau\).
-When terms are explicitly annotated, the algorithm switches from inference to checking mode.
-In the other direction, when checking a term's type, if a type can be inferred and the two types are equivalent, the checking succeeds.
-Simple type rules, such as those for \(\type\) or variables can be inferred, but checking is needed when dealing with function types.
-Since the checker does not know the type of a function argument, it may only check a lambda term against a given type (where the argument type is provided).
-The effect of this is that the programmar must annotate the outer level of lambda types, which proves to be much less cumbersome than annotating each lambda term individually and is often encouraged or enforced by other languages for various reasons, such as documentation.
+The language syntax is also extended with explicit annotations: \(\annot{e}{\tau}\).
 
-[make clear again what is different about dependent types]
+Simple typing rules, such as those for \(\type\) or variables are inference rules, since the algorithm can infer the type of the term, without any additional annotations:
+\begin{mathpar}
+    \inferrule{ } {\infer{\Gamma}{\type}{\type}}
 
-\subsection{Equality Types}
+    \inferrule{x : \tau \in \Gamma} {\infer{\Gamma}{x}{\tau}}
+\end{mathpar}
 
-As mentioned previously, sometimes the programmer may have two terms which 
+The checking judgement is needed for function abstractions, since the type of the function's argument is not known.
+\[
+    \inferrule{\check{\Gamma}{\tau_1}{\type} \\ \check{\Gamma, x: \tau_1}{e}{\tau_2}} {\check{\Gamma}{\fun{x}{}{e}}{\pi{x}{\tau_1}{\tau_2}}}
+\]
 
-\begin{figure}
-    \rules{}
-    \caption{Bidirectional typing rules}
-    \label{rules}
-\end{figure}
+Two more rules are also required which allow the algorithm to switch between inference and checking modes.
+Firstly, if the type of a term can be inferred to have type \(\tau\), which is definitionally equal to some \(\tau'\), then it can trivially be checked to have type \(\tau'\):
+\[
+    \inferrule{\infer{\Gamma}{e}{\tau'} \\ \tau \equiv \tau'} {\check{\Gamma}{e}{\tau}}
+\]
 
-\subsection{Non-Termination}
+To go in the other direction, when inferring the type of an explicit type annotation \(\annot{e}{\tau}\), the algorithm switches to checking \(e\) has type \(\tau\):
+\[
+    \inferrule{\check{\Gamma}{e}{\tau}} {\infer{\Gamma}{e : \tau}{\tau}}
+\]
 
-Due to the lack of a termination checker, partial terms can be typed in my language, allowing proofs of false. For this reason I only have a single type universe, which is contained within itself. This allows another proof of false, but since this is already possible, I have opted for the simpler type system. Another source of partiality is in recursive type definitions. To avoid more proofs of false, positivity checking should be used, however I have chosen not to include this for the same reason.
+The end result of this enhancement is that the programmer only needs to annotate the outermost level of lambda abstractions, which proves to be much less cumbersome than annotating each lambda term individually.
+Annotating outermost functions is even often encouraged or enforced in other languages, as it is beneficial for documentation and type inference.
+
+\subsection{Type System}
+
+During type checking, we keep track of variables' types using a context, \(\Gamma\), with syntax:
+\ctxsyntax{}
+
+To lookup a variable \(x\) with type \(\tau\) in context \(\Gamma\), I will use the notation
+\[
+    x : \tau \in \Gamma
+\]
+
+The actual type system is defined using three seperate, but mutually defined judgements.
+These are the two type checking and inference judgements and a context well-formedness judgement, which checks that a context mentioned in a typing rule is valid.
+\begin{gather*}
+    \ctxvalid{\Gamma} \\
+    \check{\Gamma}{e}{\tau} \\
+    \infer{\Gamma}{e}{\tau}
+\end{gather*}
+
+To check a context is valid, we must check the types mentioned in it are actually types, meaning they should have type \(\type\).
+\ctxvalidity
+
+The other two judgements are presented in full below, and explained afterwards.
+\rules
+
+In addition to the above rules, all checking rules of the form \(\check{\Gamma}{e}{\tau}\) have an additional requirement that \(\tau\) is actually a well-formed type:
+\[
+    \check{\Gamma}{\tau}{\type}
+\]
+This is omitted in the rules for reasons of brevity.
+
+I will now explain each typing rule, grouping them by the language feature they are related to.
+
+\subsubsection{Variables}
+
+The inference rule for variable terms simply checks the context is valid and looks up the type of the variable in the context.
+
+\subsubsection{Types}
+
+The type of \type{} is \type{}.
+
+\subsubsection{\(\Pi\) Types}
+
+The rule to check a \(\Pi\)-type, \(\pi{x}{\tau_1}{\tau_2}\) is well-formed must check if both \(\tau_1\) and \(\tau_2\) are well formed, however since \(x\) may occur in \(\tau_2\), we add \(x : \tau_1\) to the context before checking \(\tau_2\).
+Function applications \(\app{e_1}{e_2}\) firstly check \(e_1\) has a \(\Pi\)-type and \(e_2\) has the right type to be applied to this function.
+However, dependent types mean when we return the type of the entire application, we must substitute the actual value of \(e_2\) for the binder \(x\) in the return type.
+
+\subsubsection{Let Bindings}
+
+Let bindings \(\lett{x}{e_1}{e_2}\) simply infer the type of \(e_1\), then add this type to the context when inferring the type of \(e_2\), which is returned as the overall type of the binding.
+
+\subsubsection{\(\Sigma\) Types}
+
+The set of typing judgements for \(\Sigma\)-types are very similar to those of \(\Pi\)-types.
+When checking a dependent pair \((\pair{e_1}{e_2})\) has type \(\sigma{x}{\tau_1}{\tau_2}\), we first check \(e_1\) has type \(\tau_1\).
+The type of \(e_2\) may mention \(x\), so we must instead check \(e_2\) has type \(\tau_2\), but with \(e_1\) substituted for \(x\).
+Similarly, when the second element of a pair is projected out, \(\snd{e}\), the value of \(\fst{e}\) must be substituted in the resulting type.
+
+\subsubsection{Sum Types}
+
+The well-formedness rule for sum types must also check that the set of labels used is disjoint.
+Both the introduction and elimination rules for sum types are presented as checking rules.
+Sums are introduced with variants, which must clearly be checked against a given type, since two separate sum types may contain clashing labels and types.
+I have also chosen to enforce that case splits must be checked against a given type.
+Alternatively, I could have tried to infer the type from one of the branches then propagated this to the entire term, but in practice this just means the programmer is forced to annotate terms further inside an expression, leading to unsightly programs.
+
+Dependent types allow us to write a stronger typing rule for case splits than we would in normal languages.
+This is because we can allow the type of each branch to depend on the value of the scrutinee within that branch.
+However, to support this an extra annotation is required on the case split.
+This sometimes proves cumbersome, so in \pimu{} the annotation is optional, depending on whether the stronger typing rule is needed or not.
+
+\subsubsection{Unit Types}
+
+The inference rules for \Unit{} and \unit{} are fairly self-explanatory.
+The only subtlety is that we must ensure the contexts are valid.
+
+The eliminator for unit types includes a type annotation, which lets us the strengthen the type of inner term, by substituting the value \unit{} for the relavent variable.
+We must first check the annotation is valid and check that the discriminant has type \Unit{}.
+The resulting type of the overall expression is simply the type annotation, but with the discriminant substituted for the variable.
+
+As I have alluded to before, the eliminator for unit types is mostly useless in all but a few special cases.
+Specifically, to prove that any term of type \Unit{} must be \unit{}, we must construct a term with type \(\pi{u}{\Unit}{\eq{u}{\unit}{\Unit}}\), using the unit eliminator:
+\[
+    \fun{u}{\unitelim{u}{\eq{u}{\unit}{\Unit}}{u}{\refl}}
+\]
+
+\subsubsection{Equality Types}
+
+As mentioned previously, sometimes the programmer may have two terms which they know to be equal, but which are not definitionally equal under the given equality rules.
+For example, for any \(n : \mathtt{Nat}\) the terms \(n\) and \(0 + n\) are clearly equal, but the type checker would not automatically allow using the two terms interchangeably.
+
+Instead, we add an explicit equality type \(\eq{e_1}{e_2}{\tau}\) to the language, which represents a proposition that two terms, \(e_1\) and \(e_2\), are equal and have type \(\tau\).
+This type is well-formed when both sides of the equality have the same type and the type is valid:
+\[
+    \inferrule{\check{\Gamma}{\tau}{\type} \\ \check{\Gamma}{e_1}{\tau} \\ \check{\Gamma}{e_2}{\tau}} {\infer{\Gamma}{\eq{e_1}{e_2}{\tau}}{\type}}
+\]
+So, for example, the type of propositions that \(0\) is the left identity of addition would be \(\pi{n}{\texttt{Nat}}{\eq{n}{0 + n}{\texttt{Nat}}}\).
+
+The type of propositional equality has one introduction form, \(\refl\), which says that definitionally equal terms are also propositionally equal:
+\[
+    \inferrule{e_1 \equiv e_2} {\check{\Gamma}{\refl}{\eq{e_1}{e_2}{\tau}}}
+\]
+
+So, to construct the proof that \(0\) is the left identity of addition, we would write the term
+\[
+    \annot{(\fun{n}{\refl})}{\pi{n}{\texttt{Nat}}{\eq{n}{0 + n}{\texttt{Nat}}}}
+\]
+The \refl{} term evaluates both sides of the equality and checks if they are equal.
+Since addition is defined by pattern matching on the first argument, the two sides evaluate to the same result and the above program type checks successfully.
+
+The final rule for equality types is the elimination rule, which is sometimes referred to as J.
+Given some property \(c\) defined in terms of two propositionally equal terms \(x\) and \(y\), J allows the programmer to prove \(c\) holds for all propostionally equal terms.
+This is done by proving the simpler case that \(c\) holds if both terms are the same.
+This amounts to providing a term of type \(\app{\app{\app{c}{z}}{z}}{\refl{}}\).
+\[
+    \inferrule{\infer{\Gamma}{p}{\eq{e_1}{e_2}{\tau}} \\ \check{\Gamma}{c}{\pi{x}{\tau}{\pi{y}{\tau}{\pi{q}{\eq{x}{y}{\tau}}{\type}}}} \\ \check{\Gamma, z : \tau}{t}{\app{\app{\app{c}{z}}{z}}{\refl{}}}} {\infer{\Gamma}{\j{c}{p}{z}{t}}{\app{\app{\app{c}{e_1}}{e_2}}{p}}}
+\]
+The equality elimination term is quite tricky to understand and use without some practice, but there is a simpler, albeit less general, version which can be defined in terms of J.
+
+This simpler eliminator is called \lstinline{subst} and says that given two propositionally equal terms, \(x\) and \(y\) and some property \(P\), if we know \(P\) holds for \(x\), then we also know \(P\) holds for \(y\):
+\[
+    \mathtt{subst} : \pi{A}{\type}{\pi{P}{\upi{A}{\type}}{\pi{x}{A}{\pi{y}{A}{\upi{\eq{x}{y}{A}}{\upi{\app{P}{x}}{\app{P}{y}}}}}}}
+\]
+This is defined in terms of J, as:
+\[
+    \mathtt{subst} = \fun{A}{\fun{P}{\fun{x}{\fun{y}{\fun{eq}{\j{\fun{m}{\fun{n}{\fun{q}{\upi{\app{P}{m}}{\app{P}{n}}}}}}{eq}{x}{\fun{m}{m}}}}}}}
+\]
+
+Since equality types have an introduction and an elimination form, we must also include the \(\beta\)-reduction of equality types in the normalisation procedure, which allows a \(\refl\) term to be eliminated by J.
+\[
+    (\j{e_1}{\refl}{x}{e_3}) \rightsquigarrow_\beta e_3
+\]
+
+\subsubsection{Recursive Types}
+
+Recursive types allow the user to define types which may mention themselves, leading to possibly infinitely recursive types.
+\(\mu\) types are used to represent this.
+I will first explain the simpler, standard presentation of \(\mu\) types, then describe the enhancement used in \pimu{}.
+
+The standard presentation introduces a type of recursive types, \(\mu x \ldotp \tau\), where \(x\) can appear in \(\tau\).
+The well-formed rule of these types is
+\[
+    \inferrule{\check{\Gamma, x : \tau}{e}{\tau}} {\check{\Gamma}{\urec{x}{e}}{\tau}}
+\]
+Two new terms are used to manipulate these types, \(\fold{e}\) and \(\unfold{e}\).
+The first is used to create a \(\mu\) type and has a type rule
+\[
+    \inferrule{\check{\Gamma}{e}{[(\mu x \ldotp \tau) / x]\tau}} {\check{\Gamma}{\fold{e}}{\mu x \ldotp \tau}}
+\]
+and \(\unfold{e}\) does the opposite
+\[
+    \inferrule{\check{\Gamma}{e}{\mu x \ldotp \tau}} {\infer{\Gamma}{\unfold{e}}{[(\mu x \ldotp \tau) / x]\tau}}
+\]
+Together, these two terms form an isomorphism, leading to the name of this presentation - isorecursive types.
+
+However, these isorecursive types alone are not enough to model dependent datatypes.
+Vectors are indexed recursive types.
+They are indexed by a natural number, which is not uniform over the entire type.
+Therefore, \pimu{} extends the notion of recursive types, by adding an index to \(\mu\) types, meaning they are written as \(\rec{a}{x}{\tau}\).
+This type has a well-formed rule as follows
+\[
+    \inferrule{\check{\Gamma, a : \upi{\tau_1}{\tau_2}, x : \tau_1}{e}{\tau_2}} {\check{\Gamma}{\rec{a}{x}{e}}{\upi{\tau_1}{\tau_2}}}
+\]
+A function type at the type level is used to indicate this type must be applied to its index before it can be \texttt{fold}ed or \texttt{unfold}ed.
+When folding and unfolding not only must we must now substitute the index as well as the actual recursive variable.
+\begin{mathpar}
+    \inferrule{\check{\Gamma}{e}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x]\tau_1}} {\check{\Gamma}{\fold{e}}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}}
+
+    \inferrule{\infer{\Gamma}{e}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}} {\infer{\Gamma}{\unfold{e}}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x] \tau_1}}
+\end{mathpar}
+
+We can now define vectors, though we must take care to enforce that the actual value of the index is correct in each constructor, by using explicit equality types.
+\begin{gather*}
+    \texttt{Vec}_A = \annot{\rec{v}{n}{\sum{\texttt{nil}/(\eq{n}{\texttt{zero}}{\texttt{Nat}}), \texttt{cons}/\sigma{m}{\texttt{Nat}}{\usigma{A}{\usigma{\app{v}{m}}{(\eq{n}{\app{\texttt{succ}}{m}}{\texttt{Nat}})}}}}}}{\upi{\texttt{Nat}}{\type}} \\
+    \texttt{nil} = \annot{\fold{(\variant{\texttt{nil}}{\refl})}}{\app{\texttt{Vec}}{\texttt{zero}}} \\
+    \texttt{cons} = \annot{\fun{a}{\fun{n}{\fun{v}{\fold{(\variant{\texttt{cons}}{(\pair{\pair{\pair{n}{x}}{v}}{\refl})})}}}}}{\upi{A}{\pi{n}{\texttt{Nat}}{\upi{\app{\app{\texttt{Vec}}{A}}{n}}{\app{\app{\texttt{Vec}}{A}}{(\app{\texttt{succ}}{n})}}}}}
+\end{gather*}
+
+As mentioned previously, in \pimu{} all recursive types must have an index, even those which don't require one.
+This means for types like \texttt{Nat} above, we simply index them with a term of type \(\Unit\) and define a type alias to automatically add the \(\unit\) when needed.
+
+\todo{talk about fix and fix fix}
+
+\subsubsection{Inconsistency}
+
+The type system of my language is inconsistent, meaning we are able to construct proofs of false.
+This is a deliberate choice and I believe it is justified.
+
+Firstly, recursive functions can be defined \todo{tbd after fix}.
+%general recursion is allowed in the language, via \(\fix{e}\).
+%This takes a term of type \(\upi{\tau}{\tau}\) and returns a term of type \(\tau\), allowing us to write the term \(\fix{\mathtt{id}_\bot}\) of type \(\bot\), thus proving false.
+%I consider general recursion to be necessary to write interesting programs in my language, so I have chosen to accept this limitation.
+
+One solution employed by other dependently typed languages \cite{brady13,norell07} is to use a termination checker for recursive functions.
+This would reject functions which it cannot determine will halt, ensuring all functions are total and removing this source of inconsistency.
+This was outside the scope of my project.
+
+As a result of this source of inconsistency, I chose to adopt a simpler formulation of some other language features which also permit proofs of false.
+One such feature is that there is only a single universe of types, \(\type\).
+The inconsistency comes from the type-system equivalent of Russell's paradox, Girard's paradox \cite{girard72}.
+I have implemented a version of this paradox in \pimu{}, to demonstrate this inconsistency.
+
+A common strategy to resolving this is to introduce an infinite hierarchy of types, \(\type_0 : \type_1 : \type_2 : \ldots\), but due to the other sources of inconsistency, I chose to adopt a simpler type system with a single type of types.
+
+The final source of inconsistency in \pimu{} arises from recursive datatypes.
+To avoid inconsistency, the recursive variable of a \(\mu\) type must have the property of only occurring strictly positively.
+This means that the recursive type variable must not occur to the left of any functino arrow within the body of the type.
+If we allow the recursive variable to appear in a negative position in the type, a proof of false may be derived.
+An example, based on an example from the Agda documentation\footnote{\url{https://agda.readthedocs.io/en/latest/language/data-types.html\#strict-positivity}}, but translated into \pimu{} is demonstrated below.
+
+We first define the recursive type \texttt{Bad}, with constructor \texttt{bad}
+\begin{gather*}
+    \texttt{Bad} = \annot{\rec{b}{u}{(\upi{\app{b}{u}}{\texttt{False}})}}{\upi{\Unit}{\type}} \\
+    \texttt{bad} = \annot{\fun{f}{\fold{f}}}{\upi{(\upi{\app{\texttt{Bad}}{\unit}}{\texttt{False}})}{\app{\texttt{Bad}}{\unit}}} \\
+\end{gather*}
+We can then use this to construct a proof that \texttt{Bad} is both true and false, which is a contradiction, allowing us to prove false.
+\begin{gather*}
+    \texttt{bad\char`_false} = \annot{\fun{b}{\app{(\unfold{b})}{b}}}{\upi{\app{\texttt{Bad}}{\unit}}{\texttt{False}}} \\
+    \texttt{bad\char`_true} = \annot{\app{\texttt{bad}}{\texttt{bad\char`_false}}}{\app{\texttt{Bad}}{\unit}} \\
+    \texttt{absurd} = \annot{\app{\texttt{bad\char`_false}}{\texttt{bad\char`_true}}}{\texttt{False}} \\
+\end{gather*}
+
+\subsection{The Curry-Howard Correspondence}
+
+The Curry-Howard correspondence \cite{howard80} describes a relationship between programming languages and intuitionistic logic.
+The correspondence relates a program's type to a logical proposition and terms of this type to a proof of the corresponding proposition.
+The simply typed lambda calculus corresponds to intuitionistic propositional logic, which includes logical disjunction and conjunction, but does have universal or existential quantifiers.
+Moving to the polymorphic lambda calculus gives us a system corresponding to second-order intuitionistic logic, meaning we can propositions over sets.
+Finally, a dependently typed system corresponds to a higher order logic, where we can quantify over arbitrarily nested sets.
+
+The power of this correspondence means that we can use a dependently typed programming language to prove constructive logical propositions.
+\todo{expand?}
 
 \section{Implementation of Theory}
 
 \subsection{Repository Overview}
 
-The project is split into two seperate Rust crates. The first \texttt{dpl} contains the actual language implementation. The second \texttt{dpl-cli} provides a frontend to the language and includes \texttt{dpl} as a dependency. Both crates are part of a Cargo workspace, which exists at the root of the repository.
+The project is split into two separate Rust crates. The first \texttt{pimu} contains the actual language implementation. The second \texttt{pimu-cli} provides a frontend to the language and lists the \texttt{pimu} crate as a dependency. Both crates are part of a Cargo workspace, which exists at the root of the repository.
 
 \begin{itemize}
     \item \texttt{Cargo.toml} - Manifest file describing the workspace containing both crates.
-    \item \texttt{Cargo.lock} - Contains information about the project dependencies, to ensure builds are reproducible.
+    \item \texttt{Cargo.lock} - Contains information about the project dependencies, to ensure builds are reproducible. This is automatically generated by \texttt{cargo}.
     \item \texttt{rustfmt.toml} - Manifest file describing the formatting style used by \texttt{rustfmt}, an automatic formatter.
+          This file is empty, as the default configuration is sufficient, but is still included to indicate to potential collaborators that \texttt{rustfmt} should be used.
     \item \texttt{dpl} - The crate containing the actual language implementation.
-    \begin{itemize}
-        \item \texttt{Cargo.toml} - Manifest file specifying dependencies and other metadata.
-        \item \texttt{build.rs} - Build script run at compile time, which instructs LALRPOP to generate the parser from the syntax description.
-        \item \texttt{src} - Contains all other Rust source files.
-        \begin{itemize}
-            \item \texttt{lib.rs} - Top level file for the crate, which exports public functions.
-            \item \texttt{ast.rs} - Types for the abstract syntax and implementation of variable substition, based on examples from \texttt{moniker}.
-            \item \texttt{check.rs} - Functions for inferring and checking types of terms.
-            \item \texttt{concrete.rs} - Types for the concrete syntax which is produced after parsing, and function to convert to abstract syntax.
-            \item \texttt{context.rs} - Type for the context used in the type checking.
-            \item \texttt{equal.rs} - Evaluation of a term's normal form and checking for equality between terms.
-            \item \texttt{error.rs} - Types used to track errors in type checking.
-            \item \texttt{parser.rs} - Re-exports the parsing function provided by LALRPOP, with a cleaner inferface.
-            \item \texttt{print.rs} - Functions for pretty printing terms.
-            \item \texttt{grammar.lalrpop} - Describes the grammar used by LALRPOP to generate the parser.
-        \end{itemize}
-    \end{itemize}
+          \begin{itemize}
+              \item \texttt{Cargo.toml} - Manifest file specifying dependencies and other metadata.
+              \item \texttt{build.rs} - Build script which is run at compile time and instructs LALRPOP to generate the parser from the syntax description.
+              \item \texttt{src} - Contains all other Rust source files.
+                    \begin{itemize}
+                        \item \texttt{lib.rs} - Top level file for the crate, which exports public functions.
+                        \item \texttt{ast.rs} - Types for the abstract syntax and implementation of variable substition, based on examples from \texttt{moniker}.
+                        \item \texttt{check.rs} - Functions for inferring and checking types of terms.
+                        \item \texttt{concrete.rs} - Types for the concrete syntax which is produced after parsing, and a function to convert to abstract syntax.
+                        \item \texttt{context.rs} - Type for the context used in the type checking.
+                        \item \texttt{equal.rs} - Evaluation of a term's normal form and checking for equality between terms.
+                        \item \texttt{error.rs} - Types used to track errors in type checking.
+                        \item \texttt{parser.rs} - Re-exports the parsing function provided by LALRPOP, with a cleaner interface.
+                        \item \texttt{print.rs} - Functions for pretty printing terms.
+                        \item \texttt{grammar.lalrpop} - Describes the grammar used by LALRPOP to generate the parser.
+                    \end{itemize}
+          \end{itemize}
     \item \texttt{dpl-cli} - The crate containing the language frontend.
-    \begin{itemize}
-        \item \texttt{Cargo.toml} - Manifest file specifying dependencies. This includes a dependency on the \texttt{dpl} crate.
-        \item \texttt{src} - Contains all other Rust source files.
+          \begin{itemize}
+              \item \texttt{Cargo.toml} - Manifest file specifying dependencies. This includes a dependency on the \texttt{dpl} crate, described above.
+              \item \texttt{src} - Contains all Rust source files.
+                    \begin{itemize}
+                        \item \texttt{main.rs} - The main entry point of the application. Decides whether to read from a file or from stdin, then parses and type checks the program.
+                    \end{itemize}
+          \end{itemize}
+    \item \texttt{examples}
         \begin{itemize}
-            \item \texttt{main.rs} - The main entry point of the application. Decides whether to read from a file or from stdin, then parses and type checks the program.
-        \end{itemize}
-    \end{itemize}
-    \item \texttt{examples} - \todo{change name and do this}
+              \item \texttt{bool} - A definition of the boolean data type, with some operations on booleans.
+              \item \texttt{nat} - A definition of unary natural numbers, with the definition of addition and a selection of proofs of logical theorems involving naturals.
+              \item \texttt{vector} - A definition of length-indexed vectors, with head, tail, append and zip operations.
+              \item \texttt{bad} - A proof of false using recursive datatypes, as described above, to demonstrate the need for positivity checking. \todo{update all of these}
+              \item \texttt{hurkens} - A formulation of Hurkens' paradox \cite{hurkens95}, a simplification of Girard's paradox \cite{girard72}.
+              \item \texttt{logic} - A collection of proofs of common logical lemmas, such the commutativity of disjunction. This is based on the logic chapter of software foundations \cite{pierce18}.
+          \end{itemize}
 \end{itemize}
 
-\todo{etc.}
+\subsection{Building and Running the Type checker}
+
+Rust's package manager, Cargo, is used to build the type checker.
+It can be built by running \texttt{cargo build} from the root of the project.
+This will produce a standalone executable in \texttt{./target/debug/pimu-cli}.
+The type checker will expect program input from \texttt{stdin} by default, or will read from a file if a path is passed as an argument to the executable.
+The program will infer the type of and evaluate the given program.
+
+\subsection{Differences Between Theory and Implementation}
+
+There are a few discrepancies between the formal theory and actual implementation, however I designed the theory with the implementation in mind, by ensuring the type checking judgement and normalisation were syntax-directed.
+The primary differences are changes in the grammar of the language.
+
+To make programs easy to type on standard keyboards, \(\lambda\) is written as \lstinline{\}, \(\mu\) as \texttt{\textapprox} and \(\rightarrow\) as \lstinline{->}.
+
+The grammar presented in the theory is simple, but contains ambiguity in a number of places.
+For example, it does not specify that application is left associative, meaning \(\app{\app{e_1}{e_2}}{e_3}\) should be parsed as \(\app{(\app{e_1}{e_2})}{e_3}\).
+Another ambiguous term is \(\pi{x}{\type}{\type}\).
+While it looks obvious that this is a \(\Pi\) type, since the grammar includes term annotations, it may also be parsed as a non-dependent function type, with an annotated argument.
+This is resolved in the implementation by enforcing brackets around the first element of an annotation.
+I am not entirely happy with this solution and have considered switching to a different style of grammar with an ordered choice operator, which would let me explicitly resolve the ambiguity.
+
+Another issue I encountered was that LALRPOP can only generate LR(1) parsers, meaning grammars that require a lookahead greater than 1 cannot be generated, despite the fact that they are unambiguous.
+Differentiating between an annotated case split and the unit type eliminator requires an arbitrary amount of lookup in the parser, so I had to alter the syntax for the implementation.
+\begin{align*}
+    \caseiwithannot{x_0}{\tau}{e_0}{l}{x}{e} \qquad\qquad&\textit{case split with annotation} \\
+    \unitelim{x}{\tau}{e_1}{e_2} \qquad\qquad&\textit{unit type eliminator}
+\end{align*}
+In the implementation, the unit type eliminator starts with the word \texttt{ucase}, rather than \texttt{case}.
+
+The full grammar used in the implementation is listed below.
+Terminals are written with surrounding quotation marks, \texttt{""}.
+Optional syntax is proceeded by a question mark, \texttt{?}.
+Syntax for a list of terms is written with an overline, with the separator in superscript.
+A regular expression is used to describe the syntax of identifiers.
+\concretesyntax
+
+\subsection{Parsing}
+
+Before a program can be type checked, the input must be parsed into an abstract syntax tree (AST).
+In \pimu{}'s implementation, this is split into two stages.
+First, the concrete syntax tree (CST) is generated which describes the exact program the user has written, but does not contain any variable binding and scoping information.
+Next this is converted into an AST, which contains information about variable scoping and represents variables in a more convenient manner.
+
+As an example of this process, consider the polymorphic identity function
+\begin{lstlisting}
+(\A.\a.a) : (A : Type) -> A -> A
+\end{lstlisting}
+This is parsed into a concrete syntax tree, which directly corresponds to the written term, including the simplified syntax for non-dependent \(\Pi\) types, denoted as \lstinline{SimplePi}.
+\begin{lstlisting}
+Annot(Lam("A", Lam("a", Var("a"))),
+      Pi("A", Type, SimplePi(Var("A"), Var("A"))))
+\end{lstlisting}
+In the final step, the AST is generated, where variables are represented in a nameless form.
+\begin{lstlisting}
+Annot(Lam(Lam(Var(0))),
+      Pi(Type, Pi(Var(0), Var(1))))
+\end{lstlisting}
+
+\subsubsection{Generating the CST}
+
+\pimu{}'s implementation uses the Rust crate, LALRPOP, to generate an LR(1) parser for the syntax.
+The syntax is described in a style close to the Backus-Naur form, in \texttt{grammar.lalrpop}.
+A build script, \texttt{build.rs}, which is run at compile time and instructs LALRPOP to generate the parser.
+The parse function exported by LALRPOP has some inconvenient issues, one of which is that locations in error messages are represented as a byte offset from the start of the input.
+\texttt{parser.rs} converts this offset to a line and character number, making it easier for the user to read parsing errors.
+The conversion from the concrete to the abstract syntax tree is then performed.
+
+\subsubsection{Converting the CST to an AST}
+
+The concrete syntax tree datatype and the function to convert to an abstract syntax tree is part of \texttt{concrete.rs}.
+This process occurs by recursing over the tree, keeping track of any variable binding sites, which might need to be referred to inside the scope of said variable.
+When a variable is found, its binder is looked up in the variable map.
+If two variable bindings with the same name are encountered, the inner one overwrites the outer one, meaning variable shadowing behaves as expected.
+
+During this process, some desugaring also takes place.
+Non-dependent \(\Pi\) and \(\Sigma\) types are converted to regular (dependent) types, but with dummy variables used as their binder.
+For example, \(\upi{A}{B}\) in the CST is converted to \(\pi{\_}{A}{B}\), where the \(\_\) is a special variable that can't be referred to in \(B\).
+
+\subsubsection{Representing Variables in the AST}
+
+Programming language implementations have numerous methods of representing variables, each with their own advantages and disadvantages.
+Perhaps the simplest is to store variables by their concrete names.
+Problems with this approach arise when implementing capture-avoiding substitution.
+To ensure variables aren't captured after a substitution, name collision checks must be added, which check the variable is not part of the free variables of the term being substituted into.
+In addition, the implementation must rename variables if they do collide, making for complicated and error-prone substitution code.
+
+De Bruijn indices \cite{debruijn72} solve many problems with the na\"ive solution, by representing variables as natural numbers, which specify the
+number of other binders (\(\lambda\)s) between the variable and its binding site.
+For example, the term \(\fun{x}{\fun{y}{x}}\) is represented as
+\[
+    \lambda \ldotp \lambda \ldotp 1
+\]
+A strong advantage of this is that \(\alpha\) equivalence between de Bruijn terms is exactly the same as syntactic equivalence, greatly simplifying the name-handling implementation.
+However, de Bruijn indices require an additional shifting operation when binding or unbinding terms, where a term's indices must be shifted up or down to ensure the variables still point to a valid binder.
+
+The locally nameless representation \cite{chargueraud12} offers a mixed solution, where bound variables are represented as de Bruijn indices and free variables are given globally unique names.
+This reaps the benefits of de Bruijn indices, where \(\alpha\) equivalence can be checked with syntactic equivalence, while avoiding the need to shift indices when binding and unbinding terms.
+Instead, opening and closing operations are used on terms, which convert to and from the two representations.
+
+I use the Rust crate, moniker, to handle the locally nameless representation for me.
+This allows me to describe the binding and scoping structure directly in the abstract syntax tree and moniker automatically derives the necessary name-handling code.
+One limitation of the library is that substitution is not automatically derived, though it was a simple mechanical process to implement it myself.
+
+\subsection{Type Checking and Evaluation}
+
+After the AST has been generated, the program's type can be inferred.
+The bidirectional typing algorithm is implemented in \texttt{check.rs}.
+The inference function pattern matches the given term against inferable terms, implementing the logic described by the inference judgement in the theory, \(\infer{\Gamma}{e}{\tau}\).
+If a type cannot be inferred for a term, because it does not have the right form, the inference will return an error.
+The checking function pattern matches against both the given term and the type it is being checked against.
+If no match succeeds here, the function will attempt to infer a type for the term instead and check if the inferred and checked types are equivalent.
+
+The type checking context used in the implementation is slightly different to the one described in the theory.
+In addition to keeping track of variables' types, the implementation context also contains an additional mapping of variables to terms.
+In the theory, where terms are substituted for variables, the implementation instead adds a mapping from the variable to whatever would be substituted.
+Then, whenever the variable is encountered inside the term, the normalisation procedure looks up the value of said variable in the context, and performs the substitution.
+The reason for this difference is to make the terms emitted in error messages more understandable to the user.
+For example, consider the following erroneous program
+\begin{lstlisting}
+let Bool = <T : Unit + F : Unit> in
+let true = (unit) : Bool in
+true
+\end{lstlisting}
+Trying to type check this program results in the error
+\begin{lstlisting}
+Expected type Bool, but unit has type Unit
+\end{lstlisting}
+Here we can see the variable \lstinline{Bool} has not been eagerly substituted into the term, despite the theory specifying otherwise.
+However, this mechanism has some limitations in my implementation, meaning sometimes the full definition of a variable is printed, rather than the abbreviation.
+
+Explicit error types are encouraged by Rust and are used throughout the type checking.
+Other languages may instead throw exceptions when type errors are encountered, but in Rust the error is encoded directly in the return type of the function.
+For example, the inference function returns a \texttt{Result<Term, TypeError>}, which may then be destructured into either a valid type or a type error.
+
+\texttt{error.rs} contains the definition of \texttt{TypeError}, describing all possible errors that may occur during type checking, along with information that may be helpful when the error is emitted to the user.
+This file also handles displaying \texttt{TypeError}s to the user in an understandable manner.
+
+\subsubsection{Normalisation and Term Equivalence}
+
+As described in \pimu{}'s theory, two terms are checking for equivalence by first normalising them, then checking for alpha equivalence.
+The alpha equivalence function can be automatically derived by moniker, since it is simply a direct comparison of ASTs, thanks to the locally nameless representation used.
+The equivalence and normalisation functions are in \texttt{equal.rs}.
+The only difference from the normalisation described in the theory is that the values of variables are looked up in the context, since they are not always eagerly substituted into a term.
+
+\subsubsection{Printing Terms}
+
+The final step of the process is to display the inferred type and evaluated term back to the user.
+This means we must be able to convert the AST back into a human-readable string, which occurs in \texttt{print.rs}.
+This walks over the tree and recursively prints a term out, sometimes simplifying \(\Pi\) and \(\Sigma\) types if they are non-dependent.
+One limitation of the pretty printing implementation is that it may sometimes include more brackets than are necessary to unambiguously describe a term.
+
+\todo{add some more algorithmics and software engineering}
+
+\subsection{Tests}
+
+\subsubsection{Unit Tests}
+
+\todo{...}
+
+\subsubsection{Integration Tests}
 
 \chapter{Evaluation}
 
-\todo{eval}
+The evaluation of my project consists of writing example programs in the \pimu{} language and testing they successfully type check and run.
+This testing process is also automated by the integration tests described above.
+There is also a qualitative element of my project's evaluation, which explores how easy it is to write programs in \pimu{} and how this trades off against the extra expressivity and safety we gain by using a dependent type system.
+
+\section{Selected Examples}
+
+To explore these evaluation criteria, I have selected a subset of functions from the example programs, which I shall write and explain in detail throughout this chapter.
+
+The functions I have selected are:
+\begin{itemize}
+    \item \texttt{plus} - Addition of unary natural numbers.
+    \item \texttt{plus\_n\_0} - The proof that \(n + 0\) is equal to \(n\).
+    \item \texttt{head} - Taking the first element of a vector.
+    \item \texttt{zip} - Combining two vectors into a new vector containing pairs of elements.
+\end{itemize}
+
+Note that while previous examples in this dissertation have used the syntax of \pimu{}'s theory, in the snippets below I will use the concrete syntax, meaning they can be extracted and tested verbatim.
+
+\subsection{\texttt{plus}}
+
+The definition of unary natural numbers has been seen earlier in the dissertation.
+In the concrete syntax of \pimu{}, natural numbers are defined as
+\begin{lstlisting}[gobble=4]
+    let Nat' = (~n.\u.<zero : Unit + succ : n u>) : Unit -> Type in
+    let Nat = Nat' unit in
+\end{lstlisting}
+\texttt{Nat\textquotesingle} is the actual recursive type definition, which declares new recursive type with \texttt{n} as the recursive variable and \texttt{u} as the variable for the index.
+Since natural numbers do not need an index, the type \texttt{Unit} is used.
+In order to avoid having to write \texttt{Nat\textquotesingle unit} everywhere, we define another type \texttt{Nat} which handles this.
+
+To construct values of type \texttt{Nat}, we declare two constructors
+\begin{lstlisting}[gobble=4]
+    let 0 = (fold(<zero = unit>)) : Nat in
+    let succ = (\n.fold(<succ = n>)) : Nat -> Nat in
+\end{lstlisting}
+We see that \texttt{0} can be used as an identifier since \pimu{} supports numbers in identifiers.
+
+We now have everything necessary to define addition of natural numbers.
+\begin{lstlisting}[gobble=4]
+    let plus' = (fix (\plus.\u.\m.\u.\n. case unfold m of 
+                       <zero = _> -> n
+                    | <succ = m'> -> succ (plus unit m' unit n)))
+              : Unit -> Nat -> Unit -> Nat -> Nat in
+\end{lstlisting}
+\texttt{fix} is applied to a lambda term, allowing it to be called recursively using the identifier \texttt{plus}.
+\pimu{} also requires that the next two arguments within a \texttt{fix} term are an index and a recursive type, which we bind to \texttt{u} and \texttt{m}.
+Within the body of the function, we first \texttt{unfold} the variable \texttt{m} which has type \texttt{Nat}.
+This unrolls the recursive type, resulting in a term of type \lstinline{<zero : Unit + succ : Nat>}, which can then be used in a case split.
+If the number is zero, we simply return the other argument, \texttt{n}.
+If the number is a successor, we first bind its predecessor to the variable \lstinline{m'}.
+We then make a recursive call to \texttt{plus} to add the predecessor to the other number, then return the successor of this result.
+
+In a similar manner to the defininition of \texttt{Nat}, we can define a convinience function to avoid needing to pass in the extraneous \texttt{unit}s in \lstinline{plus'}.
+\begin{lstlisting}[gobble=4]
+    let plus = (\m.\n.plus' unit m unit n) : Nat -> Nat -> Nat in
+\end{lstlisting}
+
+We can finally use \texttt{plus} to evaluate \(2 + 1\).
+\begin{lstlisting}[gobble=4]
+    (plus (succ (succ 0)) (succ 0)) : Nat
+\end{lstlisting}
+\pimu{} returns the output:
+\begin{lstlisting}[gobble=4]
+    ...
+    evaluates to
+    fold(<succ = fold(<succ = fold(<succ = fold(<zero = unit>)>)>)>)
+    with type
+    Nat
+\end{lstlisting}
+Here, we see the term is successfully evaluated to a unary natural number representing \(3\) and the type is correctly shown as \texttt{Nat}.
+
+This demonstrates one of the limitations of \pimu{}'s implementation, which is that the resulting term is output in its fully expanded form.
+It would be more readable if the output was \lstinline{succ (succ (succ 0))} and this problem is exacerbated with more complicated types.
+
+There is also an obvious performance penalty here, in that natural numbers are represented in a unary format, meaning \(O(n)\) memory will be used to store the number \(n\) and the time complexity of addition is also linear in the size of the first argument.
+This could be resolved by using binary numbers, which are much more efficient in terms of storage and performance, however are harder to reason with when proving theorems involving numbers.
+Performance was not a primary concern in the design of \pimu{} and none of the example programs run in a noticably slow time, so I consider this tradeoff to be worth it.
+
+\subsection{\texttt{plus\_n\_0}}
+
+This example demonstrates the use of \pimu{} as tool for proving logical propositions.
+The Curry-Howard correspondance \cite{howard80} lets us represent propositions as types and proofs as terms, meaning we can use a programming language to prove theorems.
+
+The example below inherits all the definitions defined previously, since we will again be working with unary natural numbers and addition.
+
+Earlier in the dissertation, we proved that \(n = 0 + n\) by providing a term of type \lstinline{(n : Nat) -> (n = plus 0 n : Nat)}.
+\texttt{refl} can be used to construct the equality type, since the two halfs of the equality are definitionally equal, thanks to how we defined addition.
+\begin{lstlisting}[gobble=4]
+    let plus_0_n = (\n.refl) : (n : Nat) -> (n = plus 0 n : Nat) in
+\end{lstlisting}
+
+We might then ask whether it is possible to prove \(n = n + 0\) by providing a term of type \lstinline{(n : Nat) -> (n = plus n 0 : Nat)}.
+If we attempt to use the same strategy as above, we would write the term
+\begin{lstlisting}[gobble=4]
+    let plus_n_0 = (\n.refl) : (n : Nat) -> (n = plus n 0 : Nat) in
+\end{lstlisting}
+However, when we attempt to check this term \pimu{} returns an error:
+\begin{lstlisting}[gobble=4]
+    Type error
+    Tried to construct a refl of non-equal terms, n and
+    ((((fix (\plus. (\u. (\m. (\u. (\n. case unfold(m) of 
+        <zero = _> -> n
+        | <succ = m'> -> fold(<succ = ((((plus unit) m') unit) n)>)))))) 
+    unit) n) unit) fold(<zero = unit>))
+\end{lstlisting}
+The verbose output is simply the expanded definition of \texttt{plus}.
+The error is telling us that \pimu{} could not conclude the two halfs of the equality were true.
+This is because our definition of addition case splits on the first argument, but the first argument here is simply \text{n}, which could be any number, so the addition can't be evaluated.
+
+In order to prove the above, a more complicated strategy is needed, where we first perform a case split on the given natural number, then make a recursive call to the proof in the successor case.
+This recursive call corresponds to the inductive step when writing a proof by induction.
+\begin{lstlisting}[gobble=4]
+    let plus_n_0' =
+        (fix (\plus_n_0.\u.\n.case [n.(fold n) = (plus (fold n) 0) : Nat]
+            unfold n of
+            <zero = u> -> 
+                (case[\x.\y.\q.(fold(<zero = x>) = (fold(<zero = y>)) : Nat)]
+                    (unit_eq u) of refl(z) -> refl)
+            | <succ = n'> -> (
+                let rec = plus_n_0 u n' in
+                case[\x.\y.\q.(succ x = succ y : Nat)] rec of refl(z) -> refl
+            )
+    )) : Unit -> (n : Nat) -> (n = plus n 0 : Nat) in
+let plus_n_0 = (\n.plus_n_0' unit n) : (n : Nat) -> (n = plus n 0 : Nat) in
+\end{lstlisting}
+Since we are defining a recursive function, \texttt{fix} is used.
+The first step is to case split on the given natural number.
+However, here we require the stronger form of dependent case splitting mentioned in the theory, so we annotate the \texttt{case} statement with the desired type in square brackets.
+This means that in the zero branch, we only need to prove that \lstinline{0 = plus 0 0 : Nat} and in the successor branch, that \lstinline{(succ n') = plus (succ n') 0 : Nat}.
+
+Firstly, let us examine the zero branch.
+We need to provide a term of type \lstinline{fold(<zero = u>) = plus 0 0 : Nat}.
+Since \lstinline{plus 0 0} is definitionally equal to \lstinline{0}, we should simply be able to use \lstinline{refl} in this branch, however \pimu{} cannot automatically conclude that the \lstinline{u} on the left is in fact \lstinline{unit}, so can't equate the two sides of the equality.
+To overcome this, we use an auxilliary function \lstinline{unit_eq}, which uses the unit type eliminator to prove that any \lstinline{u} with type \lstinline{Unit} is in fact \lstinline{unit}.
+\begin{lstlisting}[gobble=4]
+    let unit_eq = (\u.ucase [u.(u = unit : Unit)] u of unit -> refl)
+                : (u : Unit) -> (u = unit : Unit) in
+\end{lstlisting}
+We may then use this equality proof, along with the equality eliminator to construct the needed proof for this branch.
+
+We now examine the successor branch.
+The first step is to make a recursive call to the function, to prove that the property holds for the predecessor of \lstinline{n}.
+This gives us a term with type \lstinline{n' = plus n' 0 : Nat}, but we are trying to construct a term with type \lstinline{(succ n') = plus (succ n') 0 : Nat}.
+We must again use the equality eliminator which uses the equality term to produce a new term with the desired type.
+
+The final subtlety is that the recursive term above requires an extra argument of type \lstinline{Unit}, so we define a simple term \lstinline{plus_n_0} to deal with this.
+
+We have shown that \pimu{} can be used as a tool for proving logical theorems as well as writing actual programs.
+The methods demonstrated above can be extended further to prove many other theorems, such as the commutativity of addition, which is included in the \texttt{nat} example program.
+
+When writing proofs in \pimu{} it can be verbose, due to the lack of some higher-level features that other dependently typed languages might have.
+However, one of the design goals of \pimu{} was to ensure that the theory and implementation was kept reasonably simple, without compromising on the overall expressivity of the language, so I believe this verbosity is justified.
+
+\subsection{\texttt{head}}
+
+The following example will demonstrate a unique safety feature that dependent types provide, which cannot be written in normal languages.
+
+We first define length-indexed vectors, using a natural number as the index and explicit equality types in the branches of the sum type to ensure the index has the correct value.
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[gobble=4]
+    let Vec = (\A.~v.\n.<nil : (n = 0 : Nat)
+                        + cons : ((m : Nat) * A * v m * (n = succ m : Nat))>)
+            : Type -> Nat -> Type in
+    let nil = (\A.fold(<nil = refl>)) : (A : Type) -> Vec A 0 in
+    let cons = (\A.\a.\n.\v.fold(<cons = (n, a, v, refl)>))
+            : (A : Type) -> A -> (n : Nat) -> Vec A n -> Vec A (succ n) in
+\end{lstlisting}
+\end{minipage}
+The above definition is similar to the one for natural numbers, however this time the index is actually used.
+The \lstinline{cons} branch uses a \(\Sigma\)-type to store the length of the internal vector, which has a length one less than its own.
+
+The \lstinline{head} function should return the first element of a non-empty \lstinline{Vec}.
+Dependent types allow us to enforce that the vector is non-empty, by giving \lstinline{head} the type \lstinline{(A : Type) -> (n : Nat) -> Vec A (succ n) -> A}.
+It is impossible to pass an empty vector, since the length must be the successor of a given natural number.
+The definition of \lstinline{head} is
+\begin{lstlisting}[gobble=4]
+    let head = (\A.\n.\v.case unfold v of
+                    <nil = p> -> (void_elim A (succ_neq_0 n p))
+                | <cons = v'> -> ((v'.2).1))
+            : (A : Type) -> (n : Nat) -> Vec A (succ n) -> A in
+\end{lstlisting}
+The function performs a case split on the vector, however we know that the \lstinline{nil} branch is impossible, since the vector is non-empty, so only the \lstinline{cons} branch of the split is ever evaluated.
+In the \lstinline{cons} branch, we simply return the first element from the vector.
+
+However, the case split must still be exhaustive, so we still need to provide a valid term for the \lstinline{nil} branch, despite the fact that it will never be evaluated.
+The strategy for this is to derive a term with type \lstinline{Void}, corresponding to a logical proof of false, which we can then convert to any type we want using \lstinline{void_elim}.
+This corresponds to the logical principle of explosion or \textit{ex falso quodlibet}, meaning ``from falsehood, anything follows''.
+In order to construct this \lstinline{Void} term, we use a function \lstinline{succ_neq_0}, which proves that a term \lstinline{succ n} can never be equal to \lstinline{0}.
+
+The full definitions of \lstinline{Void}, \lstinline{void_elim} and \lstinline{succ_neq_0} are included in the \texttt{vec} example program.
+
+We can finally show \lstinline{head} in action, by creating a list of booleans, using the definition of \lstinline{Bool} from the \texttt{bool} example program, and taking the head of this list.
+\begin{lstlisting}[gobble=4]
+    let xs = cons Bool true 1 (cons Bool false 0 (nil Bool)) in
+    head Bool 1 xs
+\end{lstlisting}
+When this program is run, \pimu{} will output:
+\begin{lstlisting}[gobble=4]
+    ...
+    evaluates to
+    <T = unit>
+    with type
+    <T : Unit | F : Unit>
+\end{lstlisting}
+
+If instead, we try to take the head of an empty list:
+\begin{lstlisting}[gobble=4]
+    head Bool 0 (nil Bool)
+\end{lstlisting}
+\pimu{} will return a type error, as the fourth argument must have type \lstinline{Vec Bool 1}, but \lstinline{nil Bool} has type \lstinline{Vec Bool 0}.
+
+Here, we have demonstrated why dependent types are so useful.
+If we were to define \lstinline{head} in a language without dependent types, we could not use length-indexed vectors and would have to resort to normal lists.
+We would not be able to specify in \lstinline{head}'s type that the list must be non-empty, so we would have to handle this case, perhaps raising an exception or returning a default value.
+
+\subsection{\texttt{zip}}
+
 
 
 \chapter{Conclusions}
 
 \todo{conclusions}
 
-\chapter*{etc.}
-\todo{appendix, proposal, report}
-
+\clearpage
+\addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{plain}
 \bibliography{refs}
+
+\clearpage
+\markboth{}{}
+
+\chapter*{Project Proposal}
+\addcontentsline{toc}{chapter}{Project Proposal}
+\input{proposal.tex}
 
 \end{document}

@@ -1,0 +1,139 @@
+\documentclass[12pt,a4paper,twoside]{article}
+\usepackage[pdfborder={0 0 0}]{hyperref}
+\usepackage[margin=25mm]{geometry}
+\usepackage{graphicx}
+\usepackage{parskip}
+\usepackage[UKenglish]{isodate}
+\usepackage{listings}
+
+\cleanlookdateon
+\lstset{basicstyle=\ttfamily, breaklines=true}
+
+\begin{document}
+
+\begin{center}
+\Large
+Computer Science Tripos -- Part II -- Project Proposal\\[4mm]
+\LARGE
+Implementing a dependently typed programming language\\[4mm]
+
+\large
+2239B
+
+7 November 2018
+\end{center}
+
+\vspace{5mm}
+
+\textbf{Project Supervisor:} Dr N.~Krishnaswami
+
+\textbf{Director of Studies:} Dr R.~Watts
+
+\textbf{Project Overseers:} Prof. G.~Winskel \& Dr R.~Mortier
+
+% Main document
+
+\section*{Introduction}
+
+Dependent types are an extension to the type systems present in many programming languages.
+Systems with parametric polymorphism allow types to be indexed by other types (e.g. \lstinline{List Bool}), meaning functions can be defined generically over an infinite range of types.
+Dependent types extend this idea further, allowing types to be indexed over values, as well as types.
+One of the most common examples of a dependent type is the type of a List with a known length - (e.g. \lstinline{Vect 4 Bool}).
+
+There are many advantages of adding dependent types to a programming language.
+Often performance gains can be made when types are more expressive, as the compiler knows more about them and can make better optimisations.
+For example, if length-indexed vectors are used, the compiler does not need to insert index out-of-bounds checks, since the type checker statically proves invalid accesses do not occur.
+Another obvious advantage is a greater range of error detection at compile-time.
+If a \lstinline{Matrix} type indexed by a width and height is used, the type checker can reject addition or multiplication of matrices with improper dimensions.
+
+My project is to design and implement a language which uses a dependent type system.
+I will write a type checker and interpreter for the language in OCaml.
+In addition, I will add support for datatype definitions to the language.
+Using these features, I will write some examples which showcase the type system's capabilities.
+
+\section*{Starting point}
+
+Various dependently typed languages already exist.
+These provide a good basis for example usages of dependent type systems.
+There are also a few research papers on the topic, which I may refer to.
+I will be writing my implementation in OCaml.
+I do not anticipate needing to use any additional libraries at this point.
+
+\section*{Resources required}
+
+For this project I will primarily use my own laptop to develop the language implementation and to write the dissertation.
+I will use git as a version control system for my work and make regular backups to a GitHub repository.
+I require no other special resources.
+
+\section*{Work to be done}
+
+The project breaks down into the following sub-projects:
+
+\begin{enumerate}
+
+\item Formalise the semantics of a simple dependently typed language, based on the dependently typed \(\lambda\)-calculus.
+
+\item Implement a type checker for the language.
+
+\item Implement an interpreter or compiler for the language.
+
+\item Add datatypes to the semantics and implementation.
+
+\item Write examples demonstrating the usefulness of dependent types.
+These will be the kind of things one might expect to find in a language's standard library.
+Some possibilities include definitions of natural numbers and lists, along with common operations on these datatypes.
+These examples will need to be revisited as the extension items are completed.
+
+\end{enumerate}
+
+\section*{Success criteria}
+
+The project will be a success if I have formalised the semantics of a dependently typed language, as well as having implemented a type checker and interpreter for the language.
+The language must support the evaluation of dependently typed expressions.
+Additionally, the language must include datatype declarations, which allow the programmer to define new types.
+I must also provide some example programs in the language, which demonstrate the language's unique features.
+
+
+\section*{Possible extensions}
+
+If I achieve my success criteria early, I will try and add the following extensions to the language.
+
+\begin{itemize}
+	\item Pattern matching
+	\item Type inference
+	\item Implicit arguments
+\end{itemize}
+
+If some of these features get implemented, I will also spend more time writing and updating examples in the language.
+The examples will become more understandable as the language develops.
+
+
+\section*{Timetable}
+
+The planned starting date is \textbf{2018-10-22}.
+
+\begin{enumerate}
+
+\item \textbf{2018-10-22/2018-11-05} Read papers.
+
+\item \textbf{2018-11-05/2018-11-19} Define formal semantics.
+
+\item \textbf{2018-11-19/2018-12-03} Start implementation of type checker.
+
+\item \textbf{2018-12-03/2018-12-14} Finish type checker and implement interpreter.
+
+\item \textbf{2018-12-14/2019-01-28} Finish interpreter and write progress report.
+
+\item \textbf{2019-01-28/2019-02-11} Write examples in the language.
+
+\item \textbf{2019-02-11/2019-03-04} Begin extensions.
+
+\item \textbf{2019-03-04/2019-04-22} Finish extensions and write dissertation main chapters.
+
+\item \textbf{2019-04-22/2019-05-06}  Complete dissertation.
+
+\item \textbf{2019-05-06/2019-05-13} Proof reading and submission.
+
+\end{enumerate}
+
+\end{document}

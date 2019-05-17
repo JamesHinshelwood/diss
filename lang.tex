@@ -1,134 +1,274 @@
-\newcommand{\alt}[0]{\mid}
+\newcommand{\pimu}[0]{\texorpdfstring{\(\Pi_\mu\)}{pimu}}
+
+\newcommand{\alt}[0]{\ensuremath{\mid}}
+\newcommand{\br}[0]{\rule{0pt}{0ex}}
 
 \newcommand{\typing}[3]{\ensuremath{#1 \vdash #2 : #3}}
 \renewcommand{\infer}[3]{\ensuremath{#1 \vdash #2 \Rightarrow #3}}
 \renewcommand{\check}[3]{\ensuremath{#1 \vdash #2 \Leftarrow #3}}
-\newcommand{\aeq}[0]{\ensuremath{\overset{\alpha}{=}}}
-\newcommand{\nf}[2]{\ensuremath{\text{nf}_{#1}(#2)}}
+\newcommand{\aeq}[0]{\ensuremath{=_\alpha}}
+\newcommand{\nf}[2]{\ensuremath{#1 \Downarrow #2}}
+\newcommand{\ctxvalid}[1]{\ensuremath{#1\ \text{valid}}}
 
 \newcommand{\annot}[2]{\ensuremath{#1 : #2}}
 
 \newcommand{\type}[0]{\ensuremath{\mathtt{Type}}}
 
 \newcommand{\fun}[2]{\ensuremath{\lambda #1 \ldotp #2}}
+\newcommand{\funt}[3]{\ensuremath{\lambda #1 : #2 \ldotp #3}}
 \newcommand{\app}[2]{\ensuremath{#1\ #2}}
 \renewcommand{\pi}[3]{\ensuremath{(#1 : #2) \rightarrow #3}}
+\newcommand{\upi}[2]{\ensuremath{#1 \rightarrow #2}}
 
 \newcommand{\lett}[3]{\ensuremath{\mathtt{let}\ #1 = #2\ \mathtt{in}\ #3}}
 \newcommand{\decl}[3]{\ensuremath{\mathtt{let}\ #1 \::\: #2\ \mathtt{in}\ #3}}
 
-\newcommand{\pair}[2]{\ensuremath{(#1, #2)}}
+\newcommand{\pair}[2]{\ensuremath{#1, #2}}
 \renewcommand{\sigma}[3]{\ensuremath{(#1 : #2) \times #3}}
+\newcommand{\usigma}[2]{\ensuremath{#1 \times #2}}
 \newcommand{\fst}[1]{\ensuremath{#1\mathtt{.1}}}
 \newcommand{\snd}[1]{\ensuremath{#1\mathtt{.2}}}
 
-\newcommand{\variant}[2]{\ensuremath{\mathtt{<} #1 = #2 \mathtt{>}}}
-\renewcommand{\sum}[1]{\ensuremath{\mathtt{<} \foreach \l/\t [count=\i] in {#1}{%
+\newcommand{\variant}[2]{\ensuremath{\texttt{<} #1 = #2 \texttt{>}}}
+\renewcommand{\sum}[1]{\ensuremath{\texttt{<} \foreach \l/\t [count=\i] in {#1}{%
     \ifnum\i=1%
         \l : \t
     \else%
         + \l : \t
     \fi%
-\mathtt{>}}}}
-\newcommand{\sumi}[2]{\ensuremath{\mathtt{<} #1_0 : #2_0 + \ldots + #1_n : #2_n \mathtt{>}}}
+}
+\texttt{>}}}
+\newcommand{\sumi}[2]{\ensuremath{\{\mathtt{<} #1_i : #2_i \mathtt{>}\}^{i \in \range{1}{n}}}}
 \newcommand{\case}[2]{\ensuremath{\mathtt{case}\ #1\ \mathtt{of}\ \foreach \l/\x/\t [count=\i] in {#2}{%
     \ifnum\i=1%
-        \mathtt{<} \l = x \mathtt{>} \rightarrow \t
+        \texttt{<} \l = \x \texttt{>} \rightarrow \t
     \else%
-        \mid \mathtt{<} \l = x \mathtt{>} \rightarrow \t
+        \mid \texttt{<} \l = \x \texttt{>} \rightarrow \t
     \fi%
 }}}
-\newcommand{\casei}[4]{\ensuremath{\mathtt{case}\ #1\ \mathtt{of}\ \mathtt{<} #2_0 = #3_0 \mathtt{>} \rightarrow #4_0 \mid \ldots \mid \mathtt{<} #2_n = #3_n \mathtt{>} \rightarrow #4_n}}
+\newcommand{\casei}[6]{\ensuremath{\mathtt{case}\{[#1.#2]\}^?\ #3\ \mathtt{of}\ \{\texttt{<} #4_i = #5_i \texttt{>} \rightarrow #6_i\}^{i \in \range{2}{n}}}}
+\newcommand{\caseinnoannot}[4]{\ensuremath{\mathtt{case}\ #1\ \mathtt{of}\ \{\texttt{<} #2_i = #3_i \texttt{>} \rightarrow #4_i\}^{i \in \range{1}{n}}}}
+\newcommand{\caseiwithannot}[6]{\ensuremath{\mathtt{case}[#1.#2]\ #3\ \mathtt{of}\ \{\texttt{<} #4_i = #5_i \texttt{>} \rightarrow #6_i\}^{i \in \range{1}{n}}}}
 
 \newcommand{\unit}[0]{\ensuremath{\mathtt{unit}}}
 \newcommand{\Unit}[0]{\ensuremath{\mathtt{Unit}}}
+\newcommand{\unitelim}[4]{\ensuremath{\texttt{case}[#1.#2]\ #3\ \texttt{of}\ \texttt{unit} \rightarrow #4}}
 
-\newcommand{\eq}[2]{\ensuremath{(#1 = #2)}}
+\newcommand{\eq}[3]{\ensuremath{(#1 = #2 : #3)}}
 \newcommand{\refl}[0]{\ensuremath{\mathtt{refl}}}
 \renewcommand{\j}[4]{\ensuremath{\mathtt{case}[#1]\ #2\ \mathtt{of\ refl}(#3) \rightarrow #4}}
 
+\newcommand{\rec}[3]{\ensuremath{\mu #1 \ldotp \lambda #2 \ldotp #3}}
+\newcommand{\urec}[2]{\ensuremath{\mu #1 \ldotp #2}}
 \newcommand{\fold}[1]{\ensuremath{\mathtt{fold}\ #1}}
 \newcommand{\unfold}[1]{\ensuremath{\mathtt{unfold}\ #1}}
-\newcommand{\rec}[2]{\ensuremath{\mu #1 \ldotp #2}}
+
+\newcommand{\fix}[1]{\ensuremath{\mathtt{fix}\ #1}}
 
 \newcommand{\syntax}[0]{\[
     \begin{array}{r c l >{\itshape}R}
     e, \tau & ::= & \annot{e}{\tau} & annotation \\
     & \alt & x & variable \\
     & \alt & \type & type of types \\
-    \rule{0pt}{4ex}
-    & \alt & \lett{x}{e_1}{e_2} & let binding \\
-    & \alt & \decl{x}{e_1}{e_2} & declaration \\
-    \rule{0pt}{4ex}
+    \br
     & \alt & \pi{x}{\tau_1}{\tau_2} & pi type \\
     & \alt & \fun{x}{e} & lambda abstraction \\
     & \alt & \app{e_1}{e_2} & application \\
-    \rule{0pt}{4ex}
+    & \alt & \fix{e} & fixed point \\
+    \br
+    & \alt & \lett{x}{e_1}{e_2} & let binding \\
+    \br
     & \alt & \sigma{x}{\tau_1}{\tau_2} & sigma type \\
     & \alt & \pair{e_1}{e_2} & dependent pair \\
     & \alt & \fst{e} & first projection \\
     & \alt & \snd{e} & second projection \\
-    \rule{0pt}{4ex}
+    \br
     & \alt & \sumi{l}{\tau} & sum type \\
     & \alt & \variant{l}{e} & variant \\
-    & \alt & \casei{e}{l}{x}{e} & case \\
+    & \alt & \casei{e_0}{e_1}{l}{x}{e} & case with optional annotation \\
     \rule{0pt}{4ex}
     & \alt & \Unit & unit type \\
     & \alt & \unit & unit \\
-    \rule{0pt}{4ex}
-    & \alt & \eq{e_1}{e_2} & equality type \\
+    & \alt & \unitelim{x}{\tau}{e_1}{e_2} \\
+    \br
+    & \alt & \eq{e_1}{e_2}{\tau} & equality type \\
     & \alt & \refl & equality introduction \\
     & \alt & \j{e_1}{e_2}{x}{e_3} & equality elimination \\
-    \rule{0pt}{4ex}
-    & \alt & \rec{x}{e} & recursive type \\
+    \br
+    & \alt & \rec{x_1}{x_2}{\tau} & indexed recursive type \\
     & \alt & \fold{e} & fold \\
     & \alt & \unfold{e} & unfold \\
     \end{array}
 \]}
 
-\newcommand{\rules}[0]{\begin{mathpar}
+\newcommand{\concretesyntax}[0]{\begin{center}
+    \begin{longtable}{>{\frenchspacing\ttfamily}r >{\frenchspacing\ttfamily}c >{\frenchspacing\ttfamily}l >{\itshape}r}
+    term & ::= & "(" term ")" ":" term & annotation \\
+    & \alt & app "->" term & simple pi type \\
+    & \alt & "(" ident ":" term ")" "->" term & pi type \\
+    & \alt & "\char`\\" ident "." term & lambda abstraction \\
+    & \alt & app \\
+    & \alt & "let" ident "=" term "in" term & let binding \\
+    & \alt & app "*" term & simple sigma type \\
+    & \alt & "(" ident ":" term ")" "*" term & sigma type \\
+    & \alt & app "," term & dependent pair \\
+    & \alt & app ".1" & first projection \\
+    & \alt & app ".2" & second projection \\
+    & \alt & \makecell[tl]{"case" \{"[" ident "." term "]"\}? term "of" \\\qquad \textoverline{\{"<" ident "=" ident ">" "->" app\}}\textsuperscript{"|"}} & case split \\
+    & \alt & \makecell[tl]{"ucase" "[" ident "." term "]" "term" "of" \\\qquad "unit" "->" term} & unit eliminator \\
+    & \alt & app "=" app & equality type \\
+    & \alt & \makecell[tl]{"case" "[" term "]" term "of" \\\qquad "refl" "(" ident ")" "->" term} & equality elimination \\
+    & \alt & "\textapprox" ident "." "\char`\\" ident "." term & indexed recursive type \\
+    \\
+    app & ::= & app atom & application \\
+    & \alt & atom \\
+    \\
+    atom & ::= & "(" term ")" \\
+    & \alt & ident & variable \\
+    & \alt & "Type" & type of types \\
+    & \alt & "fix" atom & fixed point \\
+    & \alt & "<" \textoverline{\{ident ":" term\}}\textsuperscript{"+"} ">" & sum type \\
+    & \alt & "<" ident "=" term ">" & variant \\
+    & \alt & "Unit" & unit type \\
+    & \alt & "unit" & unit \\
+    & \alt & "refl" & equality introduction \\
+    & \alt & "fold" atom & fold \\
+    & \alt & "unfold" atom & unfold \\
+    \\
+    ident & ::= & [a-zA-Z0-9\textquotesingle\_]+ \\
+    \end{longtable}
+\end{center}}
+
+\newcommand{\rules}[0]{\begin{mathparpagebreakable}
     \inferrule{\check{\Gamma}{e}{\tau}} {\infer{\Gamma}{e : \tau}{\tau}}
     
     \inferrule{\infer{\Gamma}{e}{\tau'} \\ \tau \equiv \tau'} {\check{\Gamma}{e}{\tau}}
     \\
-    \inferrule{ } {\infer{\Gamma}{\type}{\type}}
+    \inferrule{\ctxvalid{\Gamma} \\ x : \tau \in \Gamma} {\infer{\Gamma}{x}{\tau}}
     
-    \inferrule{x : \tau \in \Gamma} {\infer{\Gamma}{x}{\tau}}
+    \inferrule{\ctxvalid{\Gamma}} {\infer{\Gamma}{\type}{\type}}
     \\
-    \inferrule{\check{\Gamma}{\tau_1}{\type} \\ \check{\Gamma, x: \tau_1}{e}{\tau_2}} {\check{\Gamma}{\fun{x}{}{e}}{\pi{x}{\tau_1}{\tau_2}}}
+    \inferrule{\check{\Gamma}{\tau_1}{\type} \\ \check{\Gamma, x : \tau_1}{\tau_2}{\type}} {\infer{\Gamma}{\pi{x}{\tau_1}{\tau_2}}{\type}}
+    
+    \inferrule{\check{\Gamma, x: \tau_1}{e}{\tau_2}} {\check{\Gamma}{\fun{x}{}{e}}{\pi{x}{\tau_1}{\tau_2}}}
     
     \inferrule{\infer{\Gamma}{e_1}{\pi{x}{\tau_1}{\tau_2}} \\ \check{\Gamma}{e_2}{\tau_1}} {\infer{\Gamma}{\app{e_1}{e_2}}{[e_2 / x]\tau_2}}
-    
-    \inferrule{\check{\Gamma}{\tau}{\type} \\ \check{\Gamma, x : \tau}{\tau'}{\type}} {\infer{\Gamma}{\pi{x}{\tau}{\tau'}}{\type}}
+
+    \inferrule{\check{\Gamma}{e}{\upi{\tau}{\tau}}} {\check{\Gamma}{\fix{e}}{\tau}}
     \\
     \inferrule{\infer{\Gamma}{e_1}{\tau_1} \\ \infer{\Gamma, x : \tau_1}{[e_1 / x]e_2}{\tau_2}} {\infer{\Gamma}{\lett{x}{e_1}{e_2}}{\tau_2}}
-    
-    \inferrule{\check{\Gamma}{\tau_1}{\type} \\ \infer{\Gamma, x : \tau_1}{e}{\tau_2}} {\infer{\Gamma}{\decl{x}{\tau_1}{e}}{\tau_2}}
     \\
-    \inferrule{\check{\Gamma}{\sigma{x}{\tau_1}{\tau_2}}{\type} \\ \check{\Gamma}{e_1}{\tau_1} \\ \check{\Gamma}{e_2}{[x/e_1]\tau_2}} {\check{\Gamma}{\pair{e_1}{e_2}{}}{\sigma{x}{\tau_1}{\tau_2}}}
-    
     \inferrule{\check{\Gamma}{\tau_1}{\type} \\ \check{\Gamma, x : \tau_1}{\tau_2}{\type}} {\infer{\Gamma}{\sigma{x}{\tau_1}{\tau_2}}{\type}}
+    
+    \inferrule{\check{\Gamma}{e_1}{\tau_1} \\ \check{\Gamma}{e_2}{[e_1 / x]\tau_2}} {\check{\Gamma}{\pair{e_1}{e_2}{}}{\sigma{x}{\tau_1}{\tau_2}}}
     
     \inferrule{\infer{\Gamma}{e}{\sigma{x}{\tau_1}{\tau_2}}} {\infer{\Gamma}{\fst{e}}{\tau_1}}
     
     \inferrule{\infer{\Gamma}{e}{\sigma{x}{\tau_1}{\tau_2}}} {\infer{\Gamma}{\snd{e}}{[\fst{e} / x]\tau_2}}
     \\
-    \inferrule{\check{\Gamma}{\sumi{l}{\tau}}{\type} \\ \check{\Gamma}{e}{\tau_j}} {\check{\Gamma}{(\variant{l_j}{e}{})}{\sumi{l}{\tau}}}
+    \inferrule{\forall i \ldotp l_i\ \text{unique} \\ \forall i \ldotp \check{\Gamma}{\tau_i}{\type}} {\infer{\Gamma}{\sumi{l}{\tau}}{\type}}
     
-    \inferrule{\forall i \ldotp \check{\Gamma}{\tau_i}{\type}} {\infer{\Gamma}{\sumi{l}{\tau}}{\type}}
+    \inferrule{\check{\Gamma}{e}{\tau_j}} {\check{\Gamma}{\variant{l_j}{e}}{\sumi{l}{\tau}}}
     
-    \inferrule{\infer{\Gamma}{e_1}{\sumi{l}{\tau}} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_{2_i}}{\tau}} {\infer{\Gamma}{\casei{e}{l}{x}{e}}{\tau}}
+    \inferrule{\infer{\Gamma}{e_0}{\sumi{l}{\tau}} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_i}{\tau}} {\check{\Gamma}{\caseinnoannot{e_0}{l}{x}{e}}{\tau}}
+
+    \inferrule{\todo{\tau\ valid} \\ \infer{\Gamma}{e_0}{\sumi{l}{\tau}} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_i}{[\variant{l_i}{e_i} / x]\tau}} {\infer{\Gamma}{\caseiwithannot{x_0}{\tau}{e_0}{l}{x}{e}}{[e_0 / x] \tau}}
     \\
-    \inferrule{ } {\infer{\Gamma}{\unit}{\Unit}}
+    \inferrule{\ctxvalid{\Gamma}} {\infer{\Gamma}{\Unit}{\type}}
     
-    \inferrule{ } {\infer{\Gamma}{\Unit}{\type}}
+    \inferrule{\ctxvalid{\Gamma}} {\infer{\Gamma}{\unit}{\Unit}}
+
+    \inferrule{\check{\Gamma, x : \Unit}{\tau}{\type} \\ \check{\Gamma}{e_0}{\Unit} \\ \check{\Gamma}{e_1}{[\unit / x]\tau}} {\infer{\Gamma}{\unitelim{x}{\tau}{e_0}{e_1}}{[e_0 / x]\tau}}
     \\
     \inferrule{\check{\Gamma}{\tau}{\type} \\ \check{\Gamma}{e_1}{\tau} \\ \check{\Gamma}{e_2}{\tau}} {\infer{\Gamma}{\eq{e_1}{e_2}{\tau}}{\type}}
     
-    \inferrule{\check{\Gamma}{\eq{e_1}{e_2}{\tau}}{\type} \\ e_1 \equiv e_2} {\check{\Gamma}{(\refl{})}{\eq{e_1}{e_2}{\tau}}}
+    \inferrule{\ctxvalid{\Gamma} \\ e_1 \equiv e_2} {\check{\Gamma}{\refl{}}{\eq{e_1}{e_2}{\tau}}}
     
-    \inferrule{\infer{\Gamma}{p}{\eq{e_1}{e_2}{\tau}} \\ \check{\Gamma}{c}{\pi{x}{\tau}{\pi{y}{\tau}{\pi{q}{\eq{x}{y}{\tau}}{\type}}}} \\ \check{\Gamma, z : \tau}{t}{\app{\app{\app{c}{z}}{z}}{\refl{\eq{z}{z}{\tau}}}}} {\infer{\Gamma}{\j{c}{p}{x}{t}}{\app{\app{\app{c}{e_1}}{e_2}}{p}}}
+    \inferrule{\infer{\Gamma}{p}{\eq{e_1}{e_2}{\tau}} \\ \check{\Gamma}{c}{\pi{x}{\tau}{\pi{y}{\tau}{\pi{q}{\eq{x}{y}{\tau}}{\type}}}} \\ \check{\Gamma, z : \tau}{t}{\app{\app{\app{c}{z}}{z}}{\refl{}}}} {\infer{\Gamma}{\j{c}{p}{z}{t}}{\app{\app{\app{c}{e_1}}{e_2}}{p}}}
+    \\
+    \inferrule{\check{\Gamma, a : \upi{\tau_1}{\tau_2}, x : \tau_1}{\tau}{\tau_2}} {\check{\Gamma}{\rec{a}{x}{\tau}}{\upi{\tau_1}{\tau_2}}}
+
+    \inferrule{\check{\Gamma}{e}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x]\tau_1}} {\check{\Gamma}{\fold{e}}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}}
+
+    \inferrule{\infer{\Gamma}{e}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}} {\infer{\Gamma}{\unfold{e}}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x] \tau_1}}
+\end{mathparpagebreakable}}
+
+\newcommand{\ctxsyntax}[0]{\[
+    \begin{array}{r c l}
+        \Gamma & ::= & \cdot \\
+        & \alt & \Gamma, x : \tau \\
+    \end{array}
+\]}
+
+\newcommand{\ctxvalidity}[0]{\begin{mathpar}
+    \inferrule{ } {\ctxvalid{\cdot}}
+
+    \inferrule{\check{\Gamma}{\tau}{\type} \\ \ctxvalid{\Gamma}} {\ctxvalid{\Gamma, x : \tau}}
 \end{mathpar}}
+
+\newcommand{\norm}[0]{\begin{mathparpagebreakable}
+    \inferrule{\nf{e}{e'}} {\nf{\annot{e}{\tau}}{e'}}
+
+    \inferrule{ } {\nf{x}{x}}
+
+    \inferrule{ } {\nf{\type}{\type}}
+    \\
+    \inferrule{\nf{\tau_1}{\tau_1'} \\ \nf{\tau_2}{\tau_2'}} {\nf{\pi{x}{\tau_1}{\tau_2}}{\pi{x}{\tau_1'}{\tau_2'}}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\fun{x}{e}}{\fun{x}{e'}}}
+
+    \inferrule{\nf{e_1}{\fun{x}{e_1'}} \\ \nf{[e_2 / x] e_1'}{e'}} {\nf{\app{e_1}{e_2}}{e'}}
+
+    \inferrule{\nf{e_{01}}{\app{e_0}{e_1}} \\ \nf{e_0}{\fix{f}} \\ \nf{e_1}{e_1'} \\ \nf{e_2}{\fold{e_2'}} \\ \nf{\app{\app{\app{f}{(\fix{f})}}{e_1'}}{(\fold{e_2'})}}{e'}} {\nf{\app{e_{01}}{e_2}}{e'}}
+
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'}} {\nf{\app{e_1}{e_2}}{\app{e_1'}{e_2'}}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\fix{e}}{\fix{e'}}}
+    \\
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'}} {\nf{\lett{x}{e_1}{e_2}}{\lett{x}{e_1'}{e_2'}}}
+    \\
+    \inferrule{\nf{\tau_1}{\tau_1'} \\ \nf{\tau_2}{\tau_2'}} {\nf{\sigma{x}{\tau_1}{\tau_2}}{\sigma{x}{\tau_1'}{\tau_2'}}}
+
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'}} {\nf{(\pair{e_1}{e_2})}{(\pair{e_1}{e_2})}}
+
+    \inferrule{\nf{e}{(\pair{e_1}{e_2})}} {\nf{\fst{e}}{e_1}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\fst{e}}{\fst{e'}}}
+
+    \inferrule{\nf{e}{(\pair{e_1}{e_2})}} {\nf{\snd{e}}{e_2}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\snd{e}}{\snd{e'}}}
+    \\
+    \inferrule{\forall i \ldotp \nf{\tau_i}{\tau_i'}} {\nf{\sumi{l}{\tau}}{\sumi{l}{\tau'}}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\variant{l}{e}}{\variant{l}{e'}}}
+
+    \inferrule{\nf{e_0}{\variant{l_j}{e_0'}} \\ \nf{[e_0' / x_j] e_j}{e'}} {\nf{\caseinnoannot{e_0}{l}{x}{e}}{e'}}
+    
+    \inferrule{\nf{e_0}{e_0'} \\ \forall i \ldotp \nf{e_i}{e_i'}} {\nf{\caseinnoannot{e_0}{l}{x}{e}}{\caseinnoannot{e_0'}{l}{x}{e'}}}
+    \\
+    \inferrule{ } {\nf{\Unit}{\Unit}}
+
+    \inferrule{ } {\nf{\unit}{\unit}}
+    \\
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'} \\ \nf{\tau}{\tau'}} {\nf{\eq{e_1}{e_2}{\tau}}{\eq{e_1'}{e_2'}{\tau'}}}
+
+    \inferrule{ } {\nf{\refl}{\refl}}
+
+    \inferrule{\nf{e_2}{\refl} \\ \nf{e_3}{e_3'}} {\nf{\j{e_1}{e_2}{x}{e_3}}{e_3'}}
+
+    \inferrule{\nf{e_1}{e_1'} \\ \nf{e_2}{e_2'} \\ \nf{e_3}{e_3'}} {\nf{\j{e_1}{e_2}{x}{e_3}}{\j{e_1'}{e_2'}{x}{e_3'}}}
+    \\
+    \inferrule{\nf{\tau}{\tau'}} {\nf{\rec{x_1}{x_2}{\tau}}{\rec{x_1}{x_2}{\tau'}}}
+
+    \inferrule{\nf{e}{\unfold{e'}}} {\nf{\fold{e}}{e'}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\fold{e}}{\fold{e'}}}
+    
+    \inferrule{\nf{e}{\fold{e'}}} {\nf{\unfold{e}}{e'}}
+
+    \inferrule{\nf{e}{e'}} {\nf{\unfold{e}}{\unfold{e'}}}
+\end{mathparpagebreakable}}
 
 \newcommand{\nfs}[0]{\begin{align*}
     \nf{\Gamma}{\annot{e}{\tau}} &= \nf{\Gamma}{e} \\

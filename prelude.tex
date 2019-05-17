@@ -1,21 +1,36 @@
+\usepackage[multiple]{footmisc}
 \usepackage[pdfborder={0 0 0}]{hyperref} % turns references into hyperlinks
 \usepackage[margin=25mm]{geometry} % adjusts page layout
 \usepackage{graphicx} % allows inclusion of PDF, PNG and JPG images
 \usepackage{docmute} % only needed to allow inclusion of proposal.tex
 \usepackage{makecell} % allows newlines in table entries
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{listings}
 \usepackage{url}
 \usepackage{enumitem}
 \usepackage{array}
 \usepackage{mathpartir}
 \usepackage{pgffor}
+\usepackage[utf8]{inputenc}
+\usepackage{resizegather}
+\usepackage{adjustbox}
+\usepackage{textcomp}
+\usepackage{longtable}
+\usepackage{makecell}
+\usepackage{tabularx}
 
-\lstset{basicstyle=\ttfamily}
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  literate={~} {\texttt{\textapprox}}{1},
+  upquote=true,
+}
 
 \setlist{nosep}
 
 \newcolumntype{R}{>$r<$}
+\newcolumntype{T}{>{\raggedleft\arraybackslash}X}%
 
 % try to avoid widows and orphans
 \raggedbottom
@@ -28,3 +43,11 @@
 \newcommand{\todo}[1]{[#1]}
 
 \newcommand{\citeneeded}[0]{[citation needed]}
+
+\newcommand{\dotdot}[0]{\mathinner{\ldotp \ldotp}}
+
+\newcommand{\range}[2]{\ensuremath{[#1 \dotdot #2]}}
+
+\newcommand{\textapprox}{\raisebox{0.5ex}{\texttildelow}}
+
+\newcommand{\textoverline}[1]{$\overline{\mbox{#1}}$}
