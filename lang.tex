@@ -38,7 +38,7 @@
     \fi%
 }
 \texttt{>}}}
-\newcommand{\sumi}[2]{\ensuremath{\{\mathtt{<} #1_i : #2_i \mathtt{>}\}^{i \in \range{1}{n}}}}
+\newcommand{\sumi}[2]{\ensuremath{\{\texttt{<} #1_i : #2_i \texttt{>}\}^{i \in \range{1}{n}}}}
 \newcommand{\case}[2]{\ensuremath{\mathtt{case}\ #1\ \mathtt{of}\ \foreach \l/\x/\t [count=\i] in {#2}{%
     \ifnum\i=1%
         \texttt{<} \l = \x \texttt{>} \rightarrow \t
@@ -46,7 +46,7 @@
         \mid \texttt{<} \l = \x \texttt{>} \rightarrow \t
     \fi%
 }}}
-\newcommand{\casei}[6]{\ensuremath{\mathtt{case}\{[#1.#2]\}^?\ #3\ \mathtt{of}\ \{\texttt{<} #4_i = #5_i \texttt{>} \rightarrow #6_i\}^{i \in \range{2}{n}}}}
+\newcommand{\casei}[6]{\ensuremath{\mathtt{case}\{[#1.#2]\}^?\ #3\ \mathtt{of}\ \{\texttt{<} #4_i = #5_i \texttt{>} \rightarrow #6_i\}^{i \in \range{1}{n}}}}
 \newcommand{\caseinnoannot}[4]{\ensuremath{\mathtt{case}\ #1\ \mathtt{of}\ \{\texttt{<} #2_i = #3_i \texttt{>} \rightarrow #4_i\}^{i \in \range{1}{n}}}}
 \newcommand{\caseiwithannot}[6]{\ensuremath{\mathtt{case}[#1.#2]\ #3\ \mathtt{of}\ \{\texttt{<} #4_i = #5_i \texttt{>} \rightarrow #6_i\}^{i \in \range{1}{n}}}}
 
@@ -85,7 +85,7 @@
     \br
     & \alt & \sumi{l}{\tau} & sum type \\
     & \alt & \variant{l}{e} & variant \\
-    & \alt & \casei{e_0}{e_1}{l}{x}{e} & case with optional annotation \\
+    & \alt & \casei{x_0}{\tau}{e_0}{l}{x}{e} & case with optional annotation \\
     \rule{0pt}{4ex}
     & \alt & \Unit & unit type \\
     & \alt & \unit & unit \\
@@ -153,8 +153,6 @@
     \inferrule{\check{\Gamma, x: \tau_1}{e}{\tau_2}} {\check{\Gamma}{\fun{x}{}{e}}{\pi{x}{\tau_1}{\tau_2}}}
     
     \inferrule{\infer{\Gamma}{e_1}{\pi{x}{\tau_1}{\tau_2}} \\ \check{\Gamma}{e_2}{\tau_1}} {\infer{\Gamma}{\app{e_1}{e_2}}{[e_2 / x]\tau_2}}
-
-    \inferrule{\check{\Gamma}{e}{\upi{\tau}{\tau}}} {\check{\Gamma}{\fix{e}}{\tau}}
     \\
     \inferrule{\infer{\Gamma}{e_1}{\tau_1} \\ \infer{\Gamma, x : \tau_1}{[e_1 / x]e_2}{\tau_2}} {\infer{\Gamma}{\lett{x}{e_1}{e_2}}{\tau_2}}
     \\
@@ -172,7 +170,7 @@
     
     \inferrule{\infer{\Gamma}{e_0}{\sumi{l}{\tau}} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_i}{\tau}} {\check{\Gamma}{\caseinnoannot{e_0}{l}{x}{e}}{\tau}}
 
-    \inferrule{\todo{\tau\ valid} \\ \infer{\Gamma}{e_0}{\sumi{l}{\tau}} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_i}{[\variant{l_i}{e_i} / x]\tau}} {\infer{\Gamma}{\caseiwithannot{x_0}{\tau}{e_0}{l}{x}{e}}{[e_0 / x] \tau}}
+    \inferrule{\infer{\Gamma}{e_0}{\sumi{l}{\tau}} \\ \check{\Gamma, x : \sumi{l}{\tau}}{\tau}{\type} \\ \forall i \ldotp \check{\Gamma, x_i : \tau_i}{e_i}{[\variant{l_i}{e_i} / x]\tau}} {\infer{\Gamma}{\caseiwithannot{x_0}{\tau}{e_0}{l}{x}{e}}{[e_0 / x] \tau}}
     \\
     \inferrule{\ctxvalid{\Gamma}} {\infer{\Gamma}{\Unit}{\type}}
     
@@ -191,6 +189,8 @@
     \inferrule{\check{\Gamma}{e}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x]\tau_1}} {\check{\Gamma}{\fold{e}}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}}
 
     \inferrule{\infer{\Gamma}{e}{\app{(\rec{a}{x}{\tau_1})}{\tau_2}}} {\infer{\Gamma}{\unfold{e}}{[\rec{a}{x}{\tau_1} / a, \tau_2 / x] \tau_1}}
+
+    \inferrule{F = \pi{x_1}{\tau_1}{\pi{x_2}{\app{(\rec{y_1}{y_2}{\tau_2})}{e}}{\tau_3}} \\ \check{\Gamma}{f}{\upi{F}{F}} \\ \check{\Gamma}{e}{\tau_1}} {\check{\Gamma}{\fix{f}}{F}}
 \end{mathparpagebreakable}}
 
 \newcommand{\ctxsyntax}[0]{\[
